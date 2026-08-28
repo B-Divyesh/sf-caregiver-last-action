@@ -1,52 +1,40 @@
-# Caregiver Last Action — polish 2 handoff
-
-Product repair commit: `91cf973` (`fix: restore safe caregiver pairing and claims`).
+# Caregiver Last Action — review 3 handoff
 
 ## Done
 
-- Restored the two-device QR pairing flow required by the brief. It keeps AES-GCM
-  transport in the existing peer implementation and binds invitations to demo or
-  real mode, so sample state cannot pair with or write to real state.
-- Closed the complete claim registry: local persistence, valid import, newest
-  merge preservation, paired demo sync, and all earlier claims now have one
-  tagged observable test each.
-- Removed the initial service-worker reload race, added route h1 focus and polite
-  announcements, and prevented the mobile demo banner from covering the first
-  care action.
-- Updated plain-language sharing/privacy copy, README, catalog description,
-  demo notes, build IDs, and copy audit without changing the quiet-night-watch
-  visual system.
+- Completed an adversarial cold review of the live product at 390×844 and
+  1440×1000 without changing product code.
+- Wrote `.factory/review-3.md` with a FAIL verdict, five findings, the full
+  landing/README copy audit, claim evidence, demo evidence, and a finding-by-
+  finding history check.
+- Rechecked the live one-click demo, Reset demo, real/demo storage separation,
+  offline behavior, same-origin network behavior, two-context pairing, route
+  focus/back behavior, all links, route metadata, 404, headers, accessibility,
+  and visual identity.
 
-## Verify
+## Verification
 
-From a clean checkout:
+From a clean local clone of `9a9b583`:
 
-```bash
-npm ci
-npm test
-npm run build
-npm run test:e2e
-```
-
-Then run every command listed in `.factory/claims.json`.
-
-Local evidence on 2026-08-28:
-
+- `npm ci`: passed.
 - `npm test`: 5 passed.
-- `npm run build`: passed; `dist/index.html` is 23.97 kB gzip.
-- `npm run test:e2e`: 38 passed across mobile and desktop Chromium, including
-  axe serious/critical checks, offline reload/write, and two-context pairing.
-- Each of the 11 claim commands passed individually after `npm ci`.
-- Screenshots: `.factory/evidence-local/demo-mobile-viewport.png` and
-  `.factory/evidence-local/demo-desktop.png`.
+- `npm run build`: passed; `dist/index.html` was 23.95 kB gzip.
+- `npm run test:e2e`: 38 passed across mobile and desktop Chromium.
+- Every one of the 12 commands in `.factory/claims.json` passed individually.
 
-## Deployment and known gaps
+Live verification:
 
-Deployed with `/opt/fleet/lib/deploy-static.sh caregiver-last-action dist` to
-<https://caregiver-last-action.sociobot.in>. Cold live verification on
-2026-08-28 confirmed `/`, `/demo`, `/privacy/`, `/terms/`, `/robots.txt`,
-`/sitemap.xml`, and `/manifest.json` return 200; an unknown path returns the
-designed 404. `/manifest.json` returns `application/json`; CSP,
-Permissions-Policy, Referrer-Policy, and `nosniff` are present. The first cold
-check caught an outdated CSP script hash; it was corrected to the rebuilt
-bundle hash and redeployed before this handoff. There are no known product gaps.
+- `/`, `/demo`, `/privacy/`, `/terms/`, `/robots.txt`, `/sitemap.xml`, and
+  `/manifest.json` returned 200; an unknown URL returned the designed 404.
+- `/opt/fleet/lib/verify-url.sh` passed with no console errors, one h1, one main,
+  no missing alt text, and no unlabeled buttons.
+- Demo reset, offline write, real-data isolation, same-origin traffic, and live
+  two-context pairing were exercised successfully.
+
+## Remaining work
+
+Verdict remains **FAIL**. The blockers are incomplete claim coverage and visible
+correction history (F-3-1, reopening F-1-3), incomplete route social metadata
+(F-3-2, reopening F-1-6), and inconsistent care-item terminology/headings
+(F-3-3, reopening F-1-10). The landing skeleton and two pairing button labels
+also need the repairs specified in `.factory/review-3.md`.
