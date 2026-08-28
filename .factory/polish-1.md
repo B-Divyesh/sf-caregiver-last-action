@@ -14,7 +14,7 @@ Local evidence: `npm test` (5 pass), `npm run build` (pass), `npm run test:e2e`
 | F-1-6 | Route title for demo, canonical/OG/Twitter/Apple metadata, social card, robots, sitemap, and 404 asset/config. | build inspection; `test:e2e` legal/direct route test. |
 | F-1-7 | Added shared wordmark, skip link, nav, legal links, Param Factory footer, and build id to legal/404 pages. | `test:e2e` legal route test; screenshots. |
 | F-1-8 | Added deploy CSP and Permissions-Policy in `staticwebapp.config.json`. | `dist/staticwebapp.config.json` after build; live header check pending deployment. |
-| F-1-9 | Added deployment MIME rule for `manifest.webmanifest` and immutable art/icon caching. | `dist/staticwebapp.config.json` after build; live header check pending deployment. |
+| F-1-9 | Moved the linked manifest to `/manifest.json`, which Azure serves as JSON; retained immutable art/icon caching. | live `curl -I /manifest.json` after redeploy. |
 | F-1-10 | Renamed headings and product nouns around “care action.” | copy audit and browser screenshots. |
 | F-1-11 | Removed inactive payment surface and legal-jargon copy. | `@claim:no-purchase`. |
 | F-1-12 | Rewrote README introduction into short sentences. | `.factory/copy-audit.md`. |

@@ -457,7 +457,7 @@ async function checkConnectivity(): Promise<void> {
     return;
   }
   try {
-    const response = await fetch(`/manifest.webmanifest?connectivity=${Date.now()}`, { cache: 'no-store' });
+    const response = await fetch(`/manifest.json?connectivity=${Date.now()}`, { cache: 'no-store' });
     networkReachable = response.ok;
   } catch {
     networkReachable = false;
