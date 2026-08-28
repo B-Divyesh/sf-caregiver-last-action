@@ -3,8 +3,8 @@
 See the last baby-care action for a clear caregiver handoff.
 
 For baby caregivers handing off feeds, sleep, medicine, and diapers. Start and
-end feeds or sleep. Record medicine or diaper changes in one tap. Correct an
-entry without hiding its history.
+end feeds or sleep. Record medicine or diaper changes in one tap. Correct a
+care action without hiding its history.
 
 Try the isolated sample board: <https://caregiver-last-action.sociobot.in/demo>.
 Sample data never changes a real record. Use **Start for real** in the demo

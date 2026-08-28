@@ -84,7 +84,7 @@ function setConnection(text: string, kind: 'ok' | 'offline' | 'error' = 'ok'): v
   if (label) label.textContent = text;
 }
 
-async function persist(message = demoMode ? 'Saved in sample data' : 'Saved on this device', announce = false): Promise<void> {
+async function persist(message = demoMode ? 'Saved in sample data' : 'Saved on this device', announce = false): Promise<boolean> {
   try {
     await saveState(state, demoMode);
     broadcast.postMessage(state);
@@ -92,9 +92,11 @@ async function persist(message = demoMode ? 'Saved in sample data' : 'Saved on t
     setConnection(peerLink ? pairStatus : message);
     render();
     if (announce) showToast(message);
+    return true;
   } catch {
     setConnection('Could not save', 'error');
     showToast('This change could not be saved. Try again.');
+    return false;
   }
 }
 
@@ -123,6 +125,12 @@ function addCorrection(event: CareEvent, before: Correction['before'], reason: s
   });
 }
 
+function correctionSnapshot(snapshotValue: Correction['before']): string {
+  const end = snapshotValue.endAt === null ? 'In progress' : fullTimeLabel(snapshotValue.endAt);
+  const note = snapshotValue.note ? escapeHtml(snapshotValue.note) : 'No note';
+  return `<dl class="correction-values"><div><dt>Started</dt><dd>${fullTimeLabel(snapshotValue.startAt)}</dd></div><div><dt>Ended</dt><dd>${end}</dd></div><div><dt>Note</dt><dd>${note}</dd></div>${snapshotValue.deleted ? '<div><dt>Status</dt><dd>Deleted</dd></div>' : ''}</dl>`;
+}
+
 function startAction(type: ActionType): void {
   const now = Date.now();
   const event: CareEvent = {
@@ -139,7 +147,7 @@ function startAction(type: ActionType): void {
       event.updatedAt = Date.now();
       event.revision += 1;
       addCorrection(event, before, 'Undid newly recorded action');
-      void persist('Action removed');
+      void persist('Care action removed');
     },
   });
 }
@@ -151,7 +159,7 @@ function stopActive(): void {
   event.endAt = Date.now();
   event.updatedAt = Date.now();
   event.revision += 1;
-  addCorrection(event, before, 'Completed action');
+  addCorrection(event, before, 'Completed care action');
   void persist(`${ACTION_META[event.type].label} ended`);
   showToast(`${ACTION_META[event.type].label} ended · handoff updated`);
 }
@@ -160,7 +168,7 @@ function renderLastAction(): void {
   const container = element<HTMLElement>('last-action');
   const last = sortedCompletedEvents(state)[0];
   if (!last || last.endAt === null) {
-    container.innerHTML = `<div class="empty-card"><svg class="horizon-mark" viewBox="0 0 120 48" aria-hidden="true"><path d="M3 39c25-9 41-9 64 0 19 7 33 7 50 0" fill="none" stroke="var(--reed)" stroke-width="3" stroke-linecap="round"/><path d="M27 31a32 32 0 0 1 56-23 37 37 0 0 0-56 23Z" fill="var(--brass)"/></svg><h3>The next action becomes the handoff.</h3><p>Start a feed or sleep below, or record medicine or a diaper change in one tap.</p></div>`;
+    container.innerHTML = `<div class="empty-card"><svg class="horizon-mark" viewBox="0 0 120 48" aria-hidden="true"><path d="M3 39c25-9 41-9 64 0 19 7 33 7 50 0" fill="none" stroke="var(--reed)" stroke-width="3" stroke-linecap="round"/><path d="M27 31a32 32 0 0 1 56-23 37 37 0 0 0-56 23Z" fill="var(--brass)"/></svg><h3>Record the first care action.</h3><p>Start a feed or sleep below. Record medicine or a diaper change in one tap.</p></div>`;
     return;
   }
   const meta = ACTION_META[last.type];
@@ -198,11 +206,11 @@ function renderHistory(): void {
   const container = element<HTMLElement>('history-list');
   const events = sortedCompletedEvents(state).slice(0, 30);
   if (!events.length) {
-    container.innerHTML = '<div class="history-empty">No completed actions yet. Your record will appear here.</div>';
+    container.innerHTML = '<div class="history-empty">No completed care actions yet. Completed care actions appear here.</div>';
     return;
   }
   container.innerHTML = `<ol class="history-list">${events.map((event) => {
-    const corrected = state.corrections.some((correction) => correction.eventId === event.id && correction.reason !== 'Completed action');
+    const corrected = state.corrections.some((correction) => correction.eventId === event.id && correction.reason !== 'Completed care action');
     const duration = ACTION_META[event.type].timed && event.endAt ? formatDuration(event.endAt - event.startAt) : 'Instant';
     return `<li class="history-row"><span class="history-icon">${icon(event.type)}</span><span class="history-main"><strong>${ACTION_META[event.type].label}${corrected ? '<span class="correction-flag">Corrected</span>' : ''}</strong><span>${duration}${event.note ? ` · ${escapeHtml(event.note)}` : ''}</span></span><time class="history-when" datetime="${new Date(event.endAt!).toISOString()}">${dateLabel(event.endAt!)}<br>${timeLabel(event.endAt!)}</time><button class="icon-button" type="button" aria-label="Correct ${ACTION_META[event.type].label.toLowerCase()} from ${fullTimeLabel(event.endAt!)}" data-edit="${event.id}">•••</button></li>`;
   }).join('')}</ol>`;
@@ -211,14 +219,14 @@ function renderHistory(): void {
 
 function renderConnect(): void {
   const container = element<HTMLElement>('connect-content');
-  container.innerHTML = `<div class="connect-panel"><div><h3>Share with the next caregiver.</h3><p>Show an invitation on one device. Scan or paste it on the other. New care actions then appear on both boards.</p><p class="pair-status">${escapeHtml(pairStatus)}</p></div><div class="button-row"><button class="button button--primary" id="create-invite" type="button">Create invitation</button><button class="button button--secondary" id="join-invite" type="button">Join invitation</button></div></div>`;
+  container.innerHTML = `<div class="connect-panel"><div><h3>Share with the next caregiver.</h3><p>Show an invitation on one device. Scan or paste it on the other. New care actions then appear on both boards.</p><p class="pair-status">${escapeHtml(pairStatus)}</p></div><div class="button-row"><button class="button button--primary" id="create-invite" type="button">Create invitation</button><button class="button button--secondary" id="join-invite" type="button">Enter invitation</button></div></div>`;
   element<HTMLButtonElement>('create-invite').addEventListener('click', () => void createInvitation());
   element<HTMLButtonElement>('join-invite').addEventListener('click', openJoinInvitation);
 }
 
 function render(): void {
   const baby = state.settings.babyName.trim();
-  element<HTMLElement>('baby-label').textContent = baby ? `${baby} · current care action` : 'Current care action';
+  element<HTMLElement>('baby-label').textContent = baby ? `${baby} · handoff board` : 'Handoff board';
   element<HTMLElement>('hero-line').textContent = baby ? `One clear answer for ${baby}’s next caregiver.` : 'For baby caregivers handing off feeds, sleep, medicine, and diapers.';
   renderLastAction();
   renderActiveAction();
@@ -247,7 +255,8 @@ function closeDialog(): void {
 function openCorrection(id: string): void {
   const event = state.events.find((item) => item.id === id);
   if (!event || event.endAt === null) return;
-  openDialog('Visible correction', `Correct ${ACTION_META[event.type].label.toLowerCase()}`, `<form class="dialog-form" id="correction-form"><label>Started<input type="datetime-local" id="correct-start" required value="${toLocalInput(event.startAt)}"></label><label>Ended<input type="datetime-local" id="correct-end" required value="${toLocalInput(event.endAt)}"></label><label>Note <span>(optional)</span><input id="correct-note" maxlength="120" value="${escapeHtml(event.note)}"></label><label>Reason for correction <span>(shown in correction history)</span><input id="correct-reason" required maxlength="120" value="Corrected time"></label><p class="field-error" id="correction-error" role="alert" hidden></p><details><summary>Correction history (${state.corrections.filter((item) => item.eventId === id).length})</summary><ol>${state.corrections.filter((item) => item.eventId === id).map((item) => `<li>${escapeHtml(item.reason)} · ${fullTimeLabel(item.at)}</li>`).join('') || '<li>No earlier corrections.</li>'}</ol></details><div class="dialog-actions"><button class="button button--danger" id="delete-event" type="button">Delete action</button><button class="button button--primary" type="submit">Save correction</button></div></form>`);
+  const corrections = state.corrections.filter((item) => item.eventId === id);
+  openDialog('Visible correction', `Correct this ${ACTION_META[event.type].label.toLowerCase()} care action`, `<form class="dialog-form" id="correction-form"><label>Started<input type="datetime-local" id="correct-start" required value="${toLocalInput(event.startAt)}"></label><label>Ended<input type="datetime-local" id="correct-end" required value="${toLocalInput(event.endAt)}"></label><label>Note <span>(optional)</span><input id="correct-note" maxlength="120" value="${escapeHtml(event.note)}"></label><label>Reason for correction <span>(shown in correction history)</span><input id="correct-reason" required maxlength="120" value="Corrected time"></label><p class="field-error" id="correction-error" role="alert" hidden></p><details class="correction-history"><summary>Correction history (${corrections.length})</summary><ol>${corrections.map((item) => `<li><p><strong>${escapeHtml(item.reason)}</strong><span>${fullTimeLabel(item.at)}</span></p><section aria-label="Before correction"><h3>Before</h3>${correctionSnapshot(item.before)}</section><section aria-label="After correction"><h3>After</h3>${correctionSnapshot(item.after)}</section></li>`).join('') || '<li>No earlier corrections.</li>'}</ol></details><div class="dialog-actions"><button class="button button--danger" id="delete-event" type="button">Delete care action</button><button class="button button--primary" type="submit">Save correction</button></div></form>`);
   element<HTMLFormElement>('correction-form').addEventListener('submit', (submitEvent) => {
     submitEvent.preventDefault();
     const startAt = new Date(element<HTMLInputElement>('correct-start').value).getTime();
@@ -258,6 +267,7 @@ function openCorrection(id: string): void {
       error.hidden = false;
       return;
     }
+    const priorState = structuredClone(state);
     const before = snapshot(event);
     event.startAt = startAt;
     event.endAt = endAt;
@@ -265,18 +275,37 @@ function openCorrection(id: string): void {
     event.updatedAt = Date.now();
     event.revision += 1;
     addCorrection(event, before, element<HTMLInputElement>('correct-reason').value.trim() || 'Corrected details');
-    closeDialog();
-    void persist('Correction saved', true);
+    const submitButton = document.querySelector<HTMLButtonElement>('#correction-form button[type="submit"]');
+    if (submitButton) submitButton.disabled = true;
+    void persist('Correction saved', true).then((saved) => {
+      if (saved) {
+        closeDialog();
+        return;
+      }
+      state = priorState;
+      if (submitButton) submitButton.disabled = false;
+      render();
+    });
   });
   element<HTMLButtonElement>('delete-event').addEventListener('click', () => {
-    if (!window.confirm(`Delete this ${ACTION_META[event.type].label.toLowerCase()} action? The deletion will remain in correction history.`)) return;
+    if (!window.confirm(`Delete this ${ACTION_META[event.type].label.toLowerCase()} care action? The deletion will remain in correction history.`)) return;
+    const priorState = structuredClone(state);
     const before = snapshot(event);
     event.deleted = true;
     event.updatedAt = Date.now();
     event.revision += 1;
-    addCorrection(event, before, 'Deleted action');
-    closeDialog();
-    void persist('Action deleted', true);
+    addCorrection(event, before, 'Deleted care action');
+    const deleteButton = element<HTMLButtonElement>('delete-event');
+    deleteButton.disabled = true;
+    void persist('Care action deleted', true).then((saved) => {
+      if (saved) {
+        closeDialog();
+        return;
+      }
+      state = priorState;
+      deleteButton.disabled = false;
+      render();
+    });
   });
 }
 
@@ -316,7 +345,7 @@ function pairingOutput(title: string, code: string, nextLabel: string): string {
 }
 
 async function createInvitation(): Promise<void> {
-  openDialog('Encrypted pairing', 'Creating invitation…', '<p role="status">Preparing a direct connection on this device.</p>');
+  openDialog('Device pairing', 'Creating invitation…', '<p role="status">Preparing a direct connection on this device.</p>');
   try {
     const result = await PeerLink.createHost(demoMode);
     wirePeer(result.link);
@@ -343,7 +372,7 @@ async function createInvitation(): Promise<void> {
 }
 
 function openJoinInvitation(): void {
-  openDialog('Encrypted pairing', 'Join a caregiver', `<form class="dialog-form" id="invite-form"><p>Scan the invitation shown on the first device, or paste its pairing code.</p><button class="button button--secondary" id="scan-invite" type="button">Scan invitation QR</button><label>Invitation code<textarea class="pair-code" id="invite-code" required></textarea></label><p class="field-error" id="invite-error" role="alert" hidden></p><div class="dialog-actions"><button class="button button--primary" type="submit">Create response</button></div></form>`);
+  openDialog('Device pairing', 'Join a caregiver', `<form class="dialog-form" id="invite-form"><p>Scan the invitation shown on the first device, or paste its pairing code.</p><button class="button button--secondary" id="scan-invite" type="button">Scan invitation QR</button><label>Invitation code<textarea class="pair-code" id="invite-code" required></textarea></label><p class="field-error" id="invite-error" role="alert" hidden></p><div class="dialog-actions"><button class="button button--primary" type="submit">Create response</button></div></form>`);
   element<HTMLButtonElement>('scan-invite').addEventListener('click', () => openScanner((code) => {
     openJoinInvitation();
     element<HTMLTextAreaElement>('invite-code').value = code;
@@ -355,7 +384,7 @@ function openJoinInvitation(): void {
     void PeerLink.join(code, demoMode).then((result) => {
       wirePeer(result.link);
       element<HTMLElement>('dialog-title').textContent = 'Return this response';
-      dialogBody.innerHTML = pairingOutput('Keep this screen open until the first device says connected.', result.answer, 'Done');
+      dialogBody.innerHTML = pairingOutput('Keep this screen open until the first device says connected.', result.answer, 'Close pairing');
       try { drawQr(element<HTMLCanvasElement>('pair-qr'), result.answer); } catch { element<HTMLElement>('pair-qr').hidden = true; }
       element<HTMLButtonElement>('copy-code').addEventListener('click', () => void copyPairingCode(result.answer).then(() => showToast('Response code copied')));
       element<HTMLButtonElement>('pair-next').addEventListener('click', closeDialog);
@@ -471,9 +500,20 @@ async function checkConnectivity(): Promise<void> {
 }
 
 async function initialize(): Promise<void> {
-  document.title = demoMode ? 'Demo — Caregiver Last Action' : 'Caregiver Last Action — last baby-care action';
+  const routeMetadata = demoMode
+    ? { title: 'Demo — Caregiver Last Action', description: 'Try three sample care actions without changing a real record.', canonical: `${location.origin}/demo` }
+    : { title: 'Caregiver Last Action — last baby-care action', description: 'See the last baby-care action for a clear caregiver handoff.', canonical: `${location.origin}/` };
+  document.title = routeMetadata.title;
+  const setMeta = (selector: string, value: string): void => {
+    document.querySelector<HTMLMetaElement>(selector)?.setAttribute('content', value);
+  };
+  setMeta('meta[name="description"]', routeMetadata.description);
+  setMeta('meta[property="og:title"]', routeMetadata.title);
+  setMeta('meta[property="og:description"]', routeMetadata.description);
+  setMeta('meta[name="twitter:title"]', routeMetadata.title);
+  setMeta('meta[name="twitter:description"]', routeMetadata.description);
   const canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
-  if (canonical) canonical.href = demoMode ? `${location.origin}/demo` : `${location.origin}/`;
+  if (canonical) canonical.href = routeMetadata.canonical;
   element<HTMLElement>('demo-banner').hidden = !demoMode;
   try {
     state = await loadState(deviceId, demoMode);

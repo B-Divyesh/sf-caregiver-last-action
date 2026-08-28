@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'See the last baby-care action.' })).toBeVisible();
-  await expect(page.getByText('The next action becomes the handoff.')).toBeVisible();
+  await expect(page.getByText('Record the first care action.')).toBeVisible();
 });
 
 test('records timed and instant actions with end-time semantics, then persists', async ({ page }) => {
@@ -56,11 +57,13 @@ test('loads the app shell and records locally while offline', async ({ page, con
 });
 
 test('@claim:no-purchase does not show a purchase path', async ({ page }) => {
+  await page.goto('/demo');
   await expect(page.getByRole('heading', { name: 'Share with another caregiver' })).toBeVisible();
   await expect(page.getByRole('link', { name: /Buy/ })).toHaveCount(0);
 });
 
-test('@claim:local-persistence saves a real care action after reload', async ({ page }) => {
+test('@claim:local-persistence saves a care action after reload', async ({ page }) => {
+  await page.goto('/demo');
   await page.getByRole('button', { name: /Medicine/ }).click();
   await expect(page.locator('.last-card__type')).toContainText('Medicine');
   await page.reload();
@@ -92,6 +95,42 @@ test('@claim:latest-action demo shows the latest completed care action first', a
   await page.goto('/demo');
   await expect(page.locator('.last-card__type')).toContainText('Diaper');
   await expect(page.locator('#history-list')).toContainText('Diaper');
+});
+
+test('@claim:record-care-actions starts and ends timed care actions and records instant care actions', async ({ page }) => {
+  await page.goto('/demo');
+  await page.getByRole('button', { name: /Feed/ }).click();
+  await expect(page.getByText('Feed in progress')).toBeVisible();
+  await page.getByRole('button', { name: 'End feed' }).click();
+  await page.getByRole('button', { name: /Sleep/ }).click();
+  await expect(page.getByText('Sleep in progress')).toBeVisible();
+  await page.getByRole('button', { name: 'End sleep' }).click();
+  await page.getByRole('button', { name: /Medicine/ }).click();
+  await page.getByRole('button', { name: /Diaper/ }).click();
+  await expect(page.locator('#history-list .history-row')).toHaveCount(7);
+  await expect(page.locator('#history-list')).toContainText('Feed');
+  await expect(page.locator('#history-list')).toContainText('Sleep');
+  await expect(page.locator('#history-list')).toContainText('Medicine');
+  await expect(page.locator('#history-list')).toContainText('Diaper');
+});
+
+test('@claim:visible-correction-history keeps labeled before and after values after reload', async ({ page }) => {
+  await page.goto('/demo');
+  await page.getByRole('button', { name: /Diaper/ }).click();
+  await page.getByRole('button', { name: /Correct diaper/ }).first().click();
+  await page.getByLabel('Note (optional)').fill('Wet diaper at handoff');
+  await page.getByLabel('Reason for correction (shown in correction history)').fill('Added handoff detail');
+  await page.getByRole('button', { name: 'Save correction' }).click();
+  await expect(page.locator('#app-dialog')).toBeHidden();
+  await page.reload();
+  await page.getByRole('button', { name: /Correct diaper/ }).first().click();
+  await page.getByText(/Correction history \(1\)/).click();
+  const history = page.locator('.correction-history');
+  await expect(history.getByText('Added handoff detail')).toBeVisible();
+  await expect(history.getByRole('heading', { name: 'Before' })).toBeVisible();
+  await expect(history.getByText('No note')).toBeVisible();
+  await expect(history.getByRole('heading', { name: 'After' })).toBeVisible();
+  await expect(history.getByText('Wet diaper at handoff')).toBeVisible();
 });
 
 test('@claim:csv-export demo CSV contains its completed care actions', async ({ page }) => {
@@ -184,7 +223,7 @@ test('@claim:paired-demo-sync shares a new action between paired sample boards',
     await guest.goto('/demo');
     await host.getByRole('button', { name: 'Create invitation' }).click();
     const invitation = await host.locator('#pair-code').inputValue();
-    await guest.getByRole('button', { name: 'Join invitation' }).click();
+    await guest.getByRole('button', { name: 'Enter invitation' }).click();
     await guest.getByLabel('Invitation code').fill(invitation);
     await guest.getByRole('button', { name: 'Create response' }).click();
     const answer = await guest.locator('#pair-code').inputValue();
@@ -219,4 +258,39 @@ test('keeps the mobile demo banner clear of the first care action', async ({ pag
   expect(banner).not.toBeNull();
   expect(lastAction).not.toBeNull();
   expect((banner?.y ?? 0) + (banner?.height ?? 0)).toBeLessThanOrEqual(lastAction?.y ?? 0);
+});
+
+test('uses complete route metadata in built output and on the demo route', async ({ page }) => {
+  const required = [
+    '<meta name="description"',
+    '<link rel="canonical"',
+    '<meta property="og:title"',
+    '<meta property="og:description"',
+    '<meta property="og:image"',
+    '<meta name="twitter:card"',
+    '<meta name="twitter:title"',
+    '<meta name="twitter:description"',
+    '<meta name="twitter:image"',
+    '<link rel="icon"',
+    '<link rel="apple-touch-icon"',
+  ];
+  for (const route of ['dist/index.html', 'dist/privacy/index.html', 'dist/terms/index.html', 'dist/404.html']) {
+    const markup = await readFile(route, 'utf8');
+    for (const marker of required) expect(markup, `${route} is missing ${marker}`).toContain(marker);
+  }
+
+  const rootMarkup = await readFile('dist/index.html', 'utf8');
+  const inlineScript = rootMarkup.match(/<script[^>]*>([\s\S]*?)<\/script>/)?.[1];
+  expect(inlineScript).toBeTruthy();
+  const inlineHash = createHash('sha256').update(inlineScript!).digest('base64');
+  const deploymentConfig = JSON.parse(await readFile('dist/staticwebapp.config.json', 'utf8')) as { globalHeaders: Record<string, string> };
+  expect(deploymentConfig.globalHeaders['Content-Security-Policy']).toContain(`sha256-${inlineHash}`);
+  expect(deploymentConfig.globalHeaders['Permissions-Policy']).toContain('camera=(self)');
+
+  await page.goto('/demo');
+  await expect(page).toHaveTitle('Demo — Caregiver Last Action');
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', 'Demo — Caregiver Last Action');
+  await expect(page.locator('meta[name="twitter:title"]')).toHaveAttribute('content', 'Demo — Caregiver Last Action');
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', 'Try three sample care actions without changing a real record.');
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/demo$/);
 });
