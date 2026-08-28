@@ -3,7 +3,7 @@
 Work order: `caregiver-last-action-polish-1`
 
 Base reviewed: `23a69b04164477134775c2a83884217ce9b5eac7`
-Repair commit: `781e334ed1cbb48fd914a1adb91c00ed507c006f`.
+Repair commit: `740e765381d83a51b52a9c9a1ef07da18aa94fd6`.
 
 ## Delivered
 
