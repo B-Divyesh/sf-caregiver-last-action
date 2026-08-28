@@ -1,0 +1,18 @@
+{
+  "id": "/",
+  "name": "Caregiver Last Action",
+  "short_name": "Last Action",
+  "description": "A private, end-time-first handoff board for baby caregivers.",
+  "start_url": "/?source=pwa-v1",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0e1b22",
+  "theme_color": "#0e1b22",
+  "categories": ["utilities", "lifestyle"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
