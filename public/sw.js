@@ -1,8 +1,10 @@
-const CACHE = 'cla-shell-v1';
+const CACHE = 'cla-shell-v2';
 const ASSETS = ['/', '/index.html', '/offline.html', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-maskable-512.png', '/art/night-watch-960.avif', '/art/night-watch-960.webp', '/privacy/', '/terms/'];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)));
+  event.waitUntil(caches.open(CACHE).then(async (cache) => {
+    await cache.addAll(ASSETS);
+  }));
 });
 
 self.addEventListener('message', (event) => {

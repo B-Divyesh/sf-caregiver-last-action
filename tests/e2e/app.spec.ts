@@ -38,6 +38,9 @@ test('supports keyboard focus and has no serious accessibility violations', asyn
   await expect(page.locator('main')).toBeFocused();
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
   expect(results.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''))).toEqual([]);
+  await page.emulateMedia({ colorScheme: 'dark' });
+  const darkResults = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+  expect(darkResults.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''))).toEqual([]);
 });
 
 test('loads the app shell and records locally while offline', async ({ page, context }) => {

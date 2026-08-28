@@ -446,6 +446,15 @@ function updateOnlineState(): void {
   else setConnection(peerLink ? pairStatus : 'Saved on this device');
 }
 
+function updateMobileNavigation(): void {
+  const navigation = document.querySelector<HTMLElement>('.bottom-nav');
+  if (!navigation) return;
+  const visible = window.matchMedia('(max-width: 760px)').matches && window.scrollY > 420;
+  navigation.classList.toggle('is-visible', visible);
+  navigation.toggleAttribute('inert', !visible);
+  navigation.setAttribute('aria-hidden', String(!visible));
+}
+
 async function checkConnectivity(): Promise<void> {
   if (!navigator.onLine) {
     networkReachable = false;
@@ -469,6 +478,7 @@ async function initialize(): Promise<void> {
     loading.hidden = true;
     main.hidden = false;
     document.querySelectorAll<HTMLElement>('.bottom-nav, .site-footer').forEach((item) => { item.hidden = false; });
+    updateMobileNavigation();
     render();
     updateOnlineState();
     void checkConnectivity();
@@ -518,6 +528,8 @@ broadcast.addEventListener('message', (event: MessageEvent<AppState>) => {
 });
 window.addEventListener('online', () => { forcedOffline = false; networkReachable = true; void checkConnectivity(); });
 window.addEventListener('offline', () => { forcedOffline = true; networkReachable = false; updateOnlineState(); });
+window.addEventListener('scroll', updateMobileNavigation, { passive: true });
+window.addEventListener('resize', updateMobileNavigation);
 window.setInterval(() => {
   if (!state) return;
   element<HTMLElement>('current-time').textContent = new Intl.DateTimeFormat(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' }).format(Date.now());
