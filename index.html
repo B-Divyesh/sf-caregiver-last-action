@@ -35,10 +35,10 @@
         <nav class="site-nav" aria-label="Main navigation"><a href="/demo">Demo</a><a href="#history">History</a><a href="#settings">Backups</a><a href="/privacy/">Privacy</a></nav>
         <div class="masthead__copy">
           <p class="eyebrow">A clear handoff</p>
-          <h1>See the last baby-care action.</h1>
+          <h1 tabindex="-1">See the last baby-care action.</h1>
           <p id="hero-line">For baby caregivers handing off feeds, sleep, medicine, and diapers.</p>
           <div class="hero-actions"><a class="button button--primary" href="/demo">Try it with sample data</a><span>See three realistic handoff entries.</span></div>
-          <ul class="hero-facts"><li>Demo stays on this device</li><li>Works after the first visit offline</li><li>No purchase needed</li></ul>
+          <ul class="hero-facts"><li>Sample data is separate</li><li>Works after the first visit offline</li><li>No purchase needed</li></ul>
         </div>
         <div class="connection-pill" id="connection-pill" role="status"><span></span><b>Saved on this device</b></div>
       </div>
@@ -48,6 +48,8 @@
       <span class="loading-mark" aria-hidden="true"></span>
       Opening the handoff board…
     </div>
+
+    <aside class="demo-banner" id="demo-banner" role="status" hidden><span>Demo — sample data, nothing is saved.</span><button id="reset-demo" type="button">Reset demo</button><a href="/">Start for real</a></aside>
 
     <main id="main" class="shell app" tabindex="-1" hidden>
       <section id="board" class="board" aria-labelledby="board-heading">
@@ -80,7 +82,7 @@
             <p class="eyebrow">Another device</p>
             <h2 id="connect-heading">Share with another caregiver</h2>
           </div>
-          <span class="secure-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2m-11 0h12v10H6Z"/></svg> End-to-end encrypted</span>
+          <span class="secure-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2m-11 0h12v10H6Z"/></svg> Device pairing</span>
         </div>
         <div id="connect-content"></div>
       </section>
@@ -94,11 +96,11 @@
         </div>
         <form id="settings-form" class="settings-form">
           <label>Baby’s name <span>(optional)</span><input id="baby-name" name="babyName" autocomplete="off" maxlength="40" /></label>
-          <label>Your name <span>(shown to a paired caregiver)</span><input id="caregiver-name" name="caregiverName" autocomplete="name" maxlength="40" /></label>
+          <label>Your name <span>(optional)</span><input id="caregiver-name" name="caregiverName" autocomplete="name" maxlength="40" /></label>
           <button class="button button--secondary" type="submit">Save names</button>
         </form>
         <div class="data-tools">
-          <div><h3>Your record stays yours</h3><p>Export a complete backup or merge one from another device. Imports never erase newer changes.</p></div>
+          <div><h3>Move a saved record</h3><p>Export a complete backup or merge one from another device. Imports keep newer changes.</p></div>
           <div class="button-row"><button class="button button--secondary" id="export-json" type="button">Export backup</button><button class="button button--ghost" id="import-json" type="button">Import backup</button></div>
           <input type="file" id="import-file" accept="application/json,.json" hidden />
         </div>
@@ -116,7 +118,6 @@
       <p>Clear handoffs for baby caregivers.</p>
       <nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a></nav>
       <p>Built by Param Factory · build 33576e1</p>
-      <p class="generated-note">Night-watch artwork was generated for this product.</p>
     </footer>
 
     <dialog id="app-dialog" aria-labelledby="dialog-title">
@@ -124,9 +125,8 @@
       <div id="dialog-body"></div>
     </dialog>
     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+    <div id="route-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
     <div class="offline-banner" id="offline-banner" role="status" hidden>You’re offline. Changes will stay on this device.</div>
-    <aside class="demo-banner" id="demo-banner" role="status" hidden><span>Demo — sample data, nothing is saved.</span><button id="reset-demo" type="button">Reset demo</button><a href="/">Start for real</a></aside>
-
     <script type="module" src="/src/app.ts"></script>
   </body>
 </html>

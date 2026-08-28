@@ -5,11 +5,13 @@ interface InviteSignal {
   v: 1;
   k: string;
   s: RTCSessionDescriptionInit;
+  d: boolean;
 }
 
 interface AnswerSignal {
   v: 1;
   s: RTCSessionDescriptionInit;
+  d: boolean;
 }
 
 function bytesToBase64(bytes: Uint8Array): string {
@@ -84,7 +86,7 @@ export class PeerLink {
     });
   }
 
-  static async createHost(): Promise<{ invite: string; link: PeerLink }> {
+  static async createHost(demo: boolean): Promise<{ invite: string; link: PeerLink }> {
     const peer = new RTCPeerConnection({ iceServers: [] });
     const secret = crypto.getRandomValues(new Uint8Array(32));
     const link = new PeerLink(peer, secret);
@@ -92,26 +94,28 @@ export class PeerLink {
     await peer.setLocalDescription(await peer.createOffer());
     await waitForIceGathering(peer);
     return {
-      invite: await packSignal({ v: 1, k: bytesToBase64(secret), s: peer.localDescription! }),
+      invite: await packSignal({ v: 1, k: bytesToBase64(secret), s: peer.localDescription!, d: demo }),
       link,
     };
   }
 
-  static async join(invite: string): Promise<{ answer: string; link: PeerLink }> {
+  static async join(invite: string, demo: boolean): Promise<{ answer: string; link: PeerLink }> {
     const signal = await unpackSignal<InviteSignal>(invite);
     if (signal.v !== 1 || !signal.k || signal.s.type !== 'offer') throw new Error('This pairing invitation is incomplete.');
+    if (signal.d !== demo) throw new Error('Sample boards can only pair with another sample board.');
     const peer = new RTCPeerConnection({ iceServers: [] });
     const link = new PeerLink(peer, base64ToBytes(signal.k));
     peer.addEventListener('datachannel', (event) => link.attachChannel(event.channel));
     await peer.setRemoteDescription(signal.s);
     await peer.setLocalDescription(await peer.createAnswer());
     await waitForIceGathering(peer);
-    return { answer: await packSignal({ v: 1, s: peer.localDescription! }), link };
+    return { answer: await packSignal({ v: 1, s: peer.localDescription!, d: demo }), link };
   }
 
-  async acceptAnswer(answer: string): Promise<void> {
+  async acceptAnswer(answer: string, demo: boolean): Promise<void> {
     const signal = await unpackSignal<AnswerSignal>(answer);
     if (signal.v !== 1 || signal.s.type !== 'answer') throw new Error('This is not the answer for a pairing invitation.');
+    if (signal.d !== demo) throw new Error('Sample boards can only pair with another sample board.');
     await this.peer.setRemoteDescription(signal.s);
   }
 

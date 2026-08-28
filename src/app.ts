@@ -10,12 +10,12 @@ const deviceId = getDeviceId(demoMode);
 let state: AppState;
 let peerLink: PeerLink | undefined;
 let pairStatus = 'Not connected';
-const pairingAvailable = false;
 let toastTimer = 0;
 let cameraStream: MediaStream | undefined;
 let networkReachable = navigator.onLine;
 let forcedOffline = false;
-const broadcast = new BroadcastChannel('caregiver-last-action');
+// Demo and real records must never meet, including through another open tab.
+const broadcast = new BroadcastChannel(`caregiver-last-action:${demoMode ? 'demo' : 'real'}`);
 
 const element = <T extends HTMLElement>(id: string): T => {
   const found = document.getElementById(id);
@@ -211,11 +211,7 @@ function renderHistory(): void {
 
 function renderConnect(): void {
   const container = element<HTMLElement>('connect-content');
-  if (!pairingAvailable) {
-    container.innerHTML = `<div class="connect-panel"><div><h3>Share is not available in this release.</h3><p>This release keeps the handoff board on one device. Export a backup to move a record to another device.</p></div><div><a class="button button--secondary" href="#settings">Go to backups</a></div></div>`;
-    return;
-  }
-  container.innerHTML = `<div class="connect-panel"><div><h3>Share this board without an account.</h3><p>Create an invitation on one device and scan it on the other. The QR carries a one-time secret; records travel directly over an AES-GCM encrypted peer connection. Both devices keep a local copy.</p><p class="pair-status">${escapeHtml(pairStatus)}</p></div><div class="button-row"><button class="button button--primary" id="create-invite" type="button">Create invitation</button><button class="button button--secondary" id="join-invite" type="button">Join invitation</button></div></div>`;
+  container.innerHTML = `<div class="connect-panel"><div><h3>Share with the next caregiver.</h3><p>Show an invitation on one device. Scan or paste it on the other. New care actions then appear on both boards.</p><p class="pair-status">${escapeHtml(pairStatus)}</p></div><div class="button-row"><button class="button button--primary" id="create-invite" type="button">Create invitation</button><button class="button button--secondary" id="join-invite" type="button">Join invitation</button></div></div>`;
   element<HTMLButtonElement>('create-invite').addEventListener('click', () => void createInvitation());
   element<HTMLButtonElement>('join-invite').addEventListener('click', openJoinInvitation);
 }
@@ -322,7 +318,7 @@ function pairingOutput(title: string, code: string, nextLabel: string): string {
 async function createInvitation(): Promise<void> {
   openDialog('Encrypted pairing', 'Creating invitation…', '<p role="status">Preparing a direct connection on this device.</p>');
   try {
-    const result = await PeerLink.createHost();
+    const result = await PeerLink.createHost(demoMode);
     wirePeer(result.link);
     element<HTMLElement>('dialog-title').textContent = 'Scan on the second device';
     dialogBody.innerHTML = pairingOutput('Invitation expires when this dialog or app is closed.', result.invite, 'Enter their response');
@@ -332,7 +328,7 @@ async function createInvitation(): Promise<void> {
       dialogBody.innerHTML = `<form class="dialog-form" id="answer-form"><p>The other caregiver will show a response code. Copy it on that device and paste it below.</p><label>Response code<textarea class="pair-code" id="answer-code" required></textarea></label><p class="field-error" id="answer-error" role="alert" hidden></p><div class="dialog-actions"><button class="button button--primary" type="submit">Finish pairing</button></div></form>`;
       element<HTMLFormElement>('answer-form').addEventListener('submit', (event) => {
         event.preventDefault();
-        void result.link.acceptAnswer(element<HTMLTextAreaElement>('answer-code').value).then(() => {
+        void result.link.acceptAnswer(element<HTMLTextAreaElement>('answer-code').value, demoMode).then(() => {
           closeDialog();
           pairStatus = 'Connecting…';
           renderConnect();
@@ -356,7 +352,7 @@ function openJoinInvitation(): void {
     event.preventDefault();
     const code = element<HTMLTextAreaElement>('invite-code').value;
     dialogBody.innerHTML = '<p role="status">Creating the encrypted response…</p>';
-    void PeerLink.join(code).then((result) => {
+    void PeerLink.join(code, demoMode).then((result) => {
       wirePeer(result.link);
       element<HTMLElement>('dialog-title').textContent = 'Return this response';
       dialogBody.innerHTML = pairingOutput('Keep this screen open until the first device says connected.', result.answer, 'Done');
@@ -419,18 +415,27 @@ function exportCsv(): void {
 
 function registerServiceWorker(): void {
   if (!('serviceWorker' in navigator)) return;
+  let updateRequested = false;
   window.addEventListener('load', () => {
     void navigator.serviceWorker.register('/sw.js').then((registration) => {
       registration.addEventListener('updatefound', () => {
         const worker = registration.installing;
         worker?.addEventListener('statechange', () => {
           if (worker.state === 'installed' && navigator.serviceWorker.controller) {
-            showToast('An app update is ready', { label: 'Update', run: () => registration.waiting?.postMessage('SKIP_WAITING') });
+            showToast('An app update is ready', { label: 'Update', run: () => {
+              updateRequested = true;
+              registration.waiting?.postMessage('SKIP_WAITING');
+            } });
           }
         });
       });
     });
-    navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
+    // The first controller change is normal registration. Reloading there tears
+    // down in-flight work and made offline startup unreliable. Only reload when
+    // a person explicitly accepted a later update.
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (updateRequested) window.location.reload();
+    });
   });
 }
 
@@ -483,6 +488,11 @@ async function initialize(): Promise<void> {
     render();
     updateOnlineState();
     void checkConnectivity();
+    window.requestAnimationFrame(() => {
+      const heading = document.querySelector<HTMLHeadingElement>('h1');
+      heading?.focus();
+      element<HTMLElement>('route-announcer').textContent = demoMode ? 'Demo board opened' : 'Caregiver Last Action opened';
+    });
   } catch (error) {
     loading.innerHTML = `<strong>Could not open the local record.</strong><span>${escapeHtml(error instanceof Error ? error.message : 'Reload and try again.')}</span><button class="button button--primary" type="button" onclick="location.reload()">Reload</button>`;
     return;

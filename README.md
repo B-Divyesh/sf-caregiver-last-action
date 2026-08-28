@@ -14,9 +14,10 @@ banner when ready.
 
 - Shows the latest completed care action first.
 - Exports completed care actions as CSV.
-- Exports and imports backups. Invalid backups do not change the saved record.
+- Exports and imports backups. Imports keep newer changes.
 - Works offline after the first visit.
-- Keeps demo data on the device. It sends no third-party requests.
+- The sample board makes no third-party requests.
+- Paired devices share new care actions.
 
 This is a household record, not medical guidance. It does not provide dosing,
 predictions, or safety recommendations.
@@ -40,13 +41,12 @@ manifest rules.
 ## Verify claims
 
 Run every command in `.factory/claims.json` from a clean checkout. Browser
-tests cover recording, corrections, exports, demo isolation, offline use,
-accessibility, legal pages, and safe imports.
+tests cover recording, pairing, corrections, exports, demo isolation, offline
+use, accessibility, legal pages, and safe imports.
 
 ## Privacy
 
-The app stores care actions in this browser. Backups are created only when you
-choose them. See [Privacy](public/privacy/index.html) and
+Care actions are saved in this browser. See [Privacy](public/privacy/index.html) and
 [Terms](public/terms/index.html).
 
 ## License
