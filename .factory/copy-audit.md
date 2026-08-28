@@ -17,7 +17,7 @@ data** opens three realistic care actions.
 | A clear handoff | 3 | context label |
 | See the last baby-care action. | 5 | `latest-action` |
 | For baby caregivers handing off feeds, sleep, medicine, and diapers. | 10 | audience sentence |
-| One clear answer for Mila’s next caregiver. | 8 | sample-board context |
+| One clear answer for Mila’s next caregiver. | 7 | sample-board context |
 | Try it with sample data | 5 | primary action |
 | See three realistic care actions. | 5 | `demo-isolation` |
 | Sample data is separate | 4 | `demo-isolation` |
@@ -39,9 +39,9 @@ data** opens three realistic care actions.
 | No completed care actions yet. | 5 | empty state |
 | Completed care actions appear here. | 5 | `record-care-actions` |
 | Corrected / Deleted / Deleted care actions | 1 / 1 / 3 | visible history state |
-| This care action was deleted. | 6 | `deletion-history` |
-| Its correction history is kept below. | 7 | `deletion-history` |
-| View correction history for deleted diaper care action | 8 | result-naming action |
+| This care action was deleted. | 5 | `deletion-history` |
+| Its correction history is kept below. | 6 | `deletion-history` |
+| View correction history for deleted diaper care action | 7 | result-naming action |
 | Share with another caregiver | 4 | heading |
 | Device pairing / Share with the next caregiver. | 2 / 5 | section labels |
 | Show an invitation on one device. | 6 | `paired-demo-sync` |
@@ -49,7 +49,7 @@ data** opens three realistic care actions.
 | New care actions then appear on both boards. | 8 | `paired-demo-sync` |
 | Not connected / Waiting for the other device… / Connecting… | 2 / 6 / 1 | current state |
 | Connected · changes sync live | 4 | `paired-demo-sync` |
-| Connection closed / Connection interrupted · records are still saved locally | 2 / 8 | status explanation |
+| Connection closed / Connection interrupted · records are still saved locally | 2 / 7 | status explanation |
 | Create invitation / Enter invitation | 2 / 2 | pairing actions |
 | Preparing pairing on this device. | 5 | progress state; no transport claim |
 | Show this code to the caregiver you are pairing. | 9 | instruction |
