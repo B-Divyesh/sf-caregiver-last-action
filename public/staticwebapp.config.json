@@ -8,7 +8,7 @@
   ],
   "responseOverrides": { "404": { "rewrite": "/404.html", "statusCode": 404 } },
   "globalHeaders": {
-    "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.sociobot.in; media-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'sha256-Vr7MLLWVdCNSMP7b8Ghyx4lBdOD1ZJrm9Npf9AhWga4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.sociobot.in; media-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
     "Permissions-Policy": "camera=(self), microphone=(), geolocation=(), payment=()",
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin"

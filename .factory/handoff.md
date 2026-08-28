@@ -41,6 +41,9 @@ Fresh dependency install: `npm ci` completed with 0 audit vulnerabilities.
   violations in dark and light treatments. The standalone `@axe-core/cli`
   command could not launch because its Selenium Chrome binary is absent; the
   repository's pinned Playwright axe integration is the recorded replacement.
+- First live deployment exposed an inline-module CSP violation. The final CSP
+  uses the exact module hash (`sha256-Vr7MLLWVdCNSMP7b8Ghyx4lBdOD1ZJrm9Npf9AhWga4=`)
+  and is rechecked after the final deploy.
 
 ## Deploy
 

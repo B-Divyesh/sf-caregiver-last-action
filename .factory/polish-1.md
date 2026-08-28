@@ -13,7 +13,7 @@ Local evidence: `npm test` (5 pass), `npm run build` (pass), `npm run test:e2e`
 | F-1-5 | Removed the dead checkout and all purchase actions. | `@claim:no-purchase`; live deploy check required after push. |
 | F-1-6 | Route title for demo, canonical/OG/Twitter/Apple metadata, social card, robots, sitemap, and 404 asset/config. | build inspection; `test:e2e` legal/direct route test. |
 | F-1-7 | Added shared wordmark, skip link, nav, legal links, Param Factory footer, and build id to legal/404 pages. | `test:e2e` legal route test; screenshots. |
-| F-1-8 | Added deploy CSP and Permissions-Policy in `staticwebapp.config.json`. | `dist/staticwebapp.config.json` after build; live header check pending deployment. |
+| F-1-8 | Added deploy CSP and Permissions-Policy; CSP includes the exact SHA-256 of Vite’s inlined module. | local hash check; live cold browser recheck after redeploy. |
 | F-1-9 | Moved the linked manifest to `/manifest.json`, which Azure serves as JSON; retained immutable art/icon caching. | live `curl -I /manifest.json` after redeploy. |
 | F-1-10 | Renamed headings and product nouns around “care action.” | copy audit and browser screenshots. |
 | F-1-11 | Removed inactive payment surface and legal-jargon copy. | `@claim:no-purchase`. |
@@ -27,5 +27,5 @@ Local evidence: `npm test` (5 pass), `npm run build` (pass), `npm run test:e2e`
 | verification: rate limit | Disabled the client verification/purchase surface so the release makes no call to the unrate-limited endpoint. | `@claim:private-demo`, `@claim:no-purchase`. |
 | verification: cache policy | Added immutable cache rules plus SW v3. | `dist/staticwebapp.config.json`, offline claim. |
 
-After deployment, repeat the live root/demo/legal/404/header checks and replace
-the pending live references above with the deployed evidence.
+Live deployment initially exposed a CSP/module mismatch. It was fixed in the
+follow-up deployment and is rechecked in the handoff evidence.
