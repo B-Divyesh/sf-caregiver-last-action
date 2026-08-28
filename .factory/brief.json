@@ -1,0 +1,10 @@
+{
+  "slug": "caregiver-last-action",
+  "title": "Caregiver Last Action",
+  "territory": "utilities",
+  "user": "Two or more baby caregivers handing off feed, sleep, medicine, and diaper timing who need one unambiguous answer to ‘what happened last, and when did it end?’",
+  "smallest_useful_product": "A locally synced PWA for two devices: one-tap event start/stop, prominent last-action board, correction history, and encrypted QR pairing.",
+  "artifact_class": "pwa-offline",
+  "monetization": "one-time",
+  "constraints": "Treat data as sensitive family/health-adjacent data; encrypted local pairing; no medical recommendations; reliable conflict handling is mandatory."
+}
