@@ -102,7 +102,7 @@ export class PeerLink {
   static async join(invite: string, demo: boolean): Promise<{ answer: string; link: PeerLink }> {
     const signal = await unpackSignal<InviteSignal>(invite);
     if (signal.v !== 1 || !signal.k || signal.s.type !== 'offer') throw new Error('This pairing invitation is incomplete.');
-    if (signal.d !== demo) throw new Error('Sample boards can only pair with another sample board.');
+    if (signal.d !== demo) throw new Error('Sample and real boards cannot pair.');
     const peer = new RTCPeerConnection({ iceServers: [] });
     const link = new PeerLink(peer, base64ToBytes(signal.k));
     peer.addEventListener('datachannel', (event) => link.attachChannel(event.channel));
@@ -115,7 +115,7 @@ export class PeerLink {
   async acceptAnswer(answer: string, demo: boolean): Promise<void> {
     const signal = await unpackSignal<AnswerSignal>(answer);
     if (signal.v !== 1 || signal.s.type !== 'answer') throw new Error('This is not the answer for a pairing invitation.');
-    if (signal.d !== demo) throw new Error('Sample boards can only pair with another sample board.');
+    if (signal.d !== demo) throw new Error('Sample and real boards cannot pair.');
     await this.peer.setRemoteDescription(signal.s);
   }
 

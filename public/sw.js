@@ -1,4 +1,4 @@
-const CACHE = 'cla-shell-v7';
+const CACHE = 'cla-shell-v8';
 const ASSETS = ['/', '/demo', '/index.html', '/offline.html', '/manifest.json', '/icons/icon.svg', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-maskable-512.png', '/art/night-watch-960.avif', '/art/night-watch-960.webp', '/art/social-card.png', '/privacy/', '/terms/', '/404.html'];
 
 self.addEventListener('install', (event) => {

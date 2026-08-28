@@ -45,6 +45,25 @@ test('supports keyboard focus and has no serious accessibility violations', asyn
   expect(darkResults.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''))).toEqual([]);
 });
 
+test('has no serious accessibility violations on the light demo route', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.goto('/demo');
+  await expect(page.getByText('Demo — sample data, nothing is saved.')).toBeVisible();
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+  expect(results.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''))).toEqual([]);
+});
+
+test('has no serious accessibility violations on legal routes in both color schemes', async ({ page }) => {
+  for (const colorScheme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme });
+    for (const route of ['/privacy/', '/terms/']) {
+      await page.goto(route);
+      const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+      expect(results.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''))).toEqual([]);
+    }
+  }
+});
+
 test('loads the app shell and records locally while offline', async ({ page, context }) => {
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await page.reload({ waitUntil: 'networkidle' });
@@ -136,6 +155,28 @@ test('@claim:visible-correction-history keeps labeled before and after values af
   await expect(history.getByText('No note')).toBeVisible();
   await expect(history.getByRole('heading', { name: 'After' })).toBeVisible();
   await expect(history.getByText('Wet diaper at handoff')).toBeVisible();
+});
+
+test('@claim:deletion-history keeps a deleted care action and its correction history visible after reload', async ({ page }) => {
+  await page.goto('/demo');
+  await page.getByRole('button', { name: /Correct diaper/ }).first().click();
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Delete care action' }).click();
+  await expect(page.locator('#app-dialog')).toBeHidden();
+  await expect(page.getByRole('heading', { name: 'Deleted care actions' })).toBeVisible();
+  await page.reload();
+  const deleted = page.locator('.history-row--deleted');
+  await expect(deleted).toHaveCount(1);
+  await expect(deleted).toContainText('Diaper');
+  await expect(deleted).toContainText('Deleted');
+  await deleted.getByRole('button', { name: 'View correction history for deleted diaper care action' }).click();
+  const history = page.locator('.correction-history');
+  await expect(page.getByRole('heading', { name: 'Deleted diaper care action' })).toBeVisible();
+  await expect(history).toBeVisible();
+  await expect(history.getByText('Deleted care action')).toBeVisible();
+  await expect(history.getByRole('heading', { name: 'Before' })).toBeVisible();
+  await expect(history.getByRole('heading', { name: 'After' })).toBeVisible();
+  await expect(history.getByText('Deleted', { exact: true })).toBeVisible();
 });
 
 test('@claim:csv-export demo CSV contains its completed care actions', async ({ page }) => {
@@ -241,6 +282,46 @@ test('@claim:paired-demo-sync shares a new action between paired sample boards',
   } finally {
     await hostContext.close();
     await guestContext.close();
+  }
+});
+
+test('@claim:demo-pairing-isolation rejects pairing between sample and real boards without sharing care actions', async ({ browser }) => {
+  test.setTimeout(60_000);
+  const realContext = await browser.newContext();
+  const demoContext = await browser.newContext();
+  const real = await realContext.newPage();
+  const demo = await demoContext.newPage();
+  try {
+    await real.goto('/');
+    await demo.goto('/demo');
+    await real.getByRole('button', { name: /Diaper/ }).click();
+    await demo.getByRole('button', { name: /Medicine/ }).click();
+
+    await real.getByRole('button', { name: 'Create invitation' }).click();
+    const realInvitation = await real.locator('#pair-code').inputValue();
+    await demo.getByRole('button', { name: 'Enter invitation' }).click();
+    await demo.getByLabel('Invitation code').fill(realInvitation);
+    await demo.getByRole('button', { name: 'Create response' }).click();
+    await expect(demo.getByRole('alert')).toHaveText('Sample and real boards cannot pair.');
+    await expect(demo.getByRole('button', { name: 'Enter invitation again' })).toBeVisible();
+    await demo.getByRole('button', { name: 'Close dialog' }).click();
+    await real.getByRole('button', { name: 'Close dialog' }).click();
+
+    await demo.getByRole('button', { name: 'Create invitation' }).click();
+    const demoInvitation = await demo.locator('#pair-code').inputValue();
+    await real.getByRole('button', { name: 'Enter invitation' }).click();
+    await real.getByLabel('Invitation code').fill(demoInvitation);
+    await real.getByRole('button', { name: 'Create response' }).click();
+    await expect(real.getByRole('alert')).toHaveText('Sample and real boards cannot pair.');
+
+    await real.reload();
+    await demo.reload();
+    await expect(real.locator('.last-card__type')).toContainText('Diaper');
+    await expect(real.locator('#history-list')).not.toContainText('Medicine');
+    await expect(demo.locator('.last-card__type')).toContainText('Medicine');
+    await expect(demo.locator('#history-list')).toContainText('Medicine');
+  } finally {
+    await Promise.allSettled([realContext.close(), demoContext.close()]);
   }
 });
 

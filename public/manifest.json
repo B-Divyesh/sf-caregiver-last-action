@@ -3,7 +3,7 @@
   "name": "Caregiver Last Action",
   "short_name": "Last Action",
   "description": "A handoff board for baby caregivers.",
-  "start_url": "/?source=pwa-v2",
+  "start_url": "/?source=pwa-v3",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

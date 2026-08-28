@@ -15,6 +15,7 @@ banner when ready.
 - Shows the latest completed care action first.
 - Exports completed care actions as CSV.
 - Exports and imports backups. Imports keep newer changes.
+- Keeps a deleted care action in its correction history.
 - Works offline after the first visit.
 - The sample board makes no third-party requests.
 - Paired devices share new care actions.
@@ -41,8 +42,8 @@ manifest rules.
 ## Verify claims
 
 Run every command in `.factory/claims.json` from a clean checkout. Browser
-tests cover recording, pairing, corrections, exports, demo isolation, offline
-use, accessibility, legal pages, and safe imports.
+tests cover recording, pairing, deletion history, corrections, exports, demo
+isolation, offline use, accessibility, legal pages, and safe imports.
 
 ## Privacy
 

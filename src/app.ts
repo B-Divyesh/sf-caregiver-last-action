@@ -208,18 +208,32 @@ function renderActions(): void {
   });
 }
 
+function correctionHistoryMarkup(corrections: Correction[], open = false): string {
+  return `<details class="correction-history"${open ? ' open' : ''}><summary>Correction history (${corrections.length})</summary><ol>${corrections.map((item) => `<li><p><strong>${escapeHtml(item.reason)}</strong><span>${fullTimeLabel(item.at)}</span></p><section aria-label="Before correction"><h3>Before</h3>${correctionSnapshot(item.before)}</section><section aria-label="After correction"><h3>After</h3>${correctionSnapshot(item.after)}</section></li>`).join('') || '<li>No earlier corrections.</li>'}</ol></details>`;
+}
+
+function historyRow(event: CareEvent, deleted = false): string {
+  const duration = ACTION_META[event.type].timed && event.endAt ? formatDuration(event.endAt - event.startAt) : 'Instant';
+  const corrected = state.corrections.some((correction) => correction.eventId === event.id && correction.reason !== 'Completed care action');
+  const actionLabel = deleted
+    ? `View correction history for deleted ${ACTION_META[event.type].label.toLowerCase()} care action`
+    : `Correct ${ACTION_META[event.type].label.toLowerCase()} from ${fullTimeLabel(event.endAt!)}`;
+  const detail = deleted ? `Deleted ${dateLabel(event.updatedAt)}` : `${duration}${event.note ? ` · ${escapeHtml(event.note)}` : ''}`;
+  return `<li class="history-row${deleted ? ' history-row--deleted' : ''}"><span class="history-icon">${icon(event.type)}</span><span class="history-main"><strong>${ACTION_META[event.type].label}${deleted ? '<span class="deletion-flag">Deleted</span>' : corrected ? '<span class="correction-flag">Corrected</span>' : ''}</strong><span>${detail}</span></span><time class="history-when" datetime="${new Date(deleted ? event.updatedAt : event.endAt!).toISOString()}">${dateLabel(deleted ? event.updatedAt : event.endAt!)}<br>${timeLabel(deleted ? event.updatedAt : event.endAt!)}</time><button class="icon-button" type="button" aria-label="${actionLabel}" data-edit="${event.id}">•••</button></li>`;
+}
+
 function renderHistory(): void {
   const container = element<HTMLElement>('history-list');
   const events = sortedCompletedEvents(state).slice(0, 30);
-  if (!events.length) {
+  const deletedEvents = state.events
+    .filter((event) => Boolean(event.deleted) && event.endAt !== null)
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, 30);
+  if (!events.length && !deletedEvents.length) {
     container.innerHTML = '<div class="history-empty">No completed care actions yet. Completed care actions appear here.</div>';
     return;
   }
-  container.innerHTML = `<ol class="history-list">${events.map((event) => {
-    const corrected = state.corrections.some((correction) => correction.eventId === event.id && correction.reason !== 'Completed care action');
-    const duration = ACTION_META[event.type].timed && event.endAt ? formatDuration(event.endAt - event.startAt) : 'Instant';
-    return `<li class="history-row"><span class="history-icon">${icon(event.type)}</span><span class="history-main"><strong>${ACTION_META[event.type].label}${corrected ? '<span class="correction-flag">Corrected</span>' : ''}</strong><span>${duration}${event.note ? ` · ${escapeHtml(event.note)}` : ''}</span></span><time class="history-when" datetime="${new Date(event.endAt!).toISOString()}">${dateLabel(event.endAt!)}<br>${timeLabel(event.endAt!)}</time><button class="icon-button" type="button" aria-label="Correct ${ACTION_META[event.type].label.toLowerCase()} from ${fullTimeLabel(event.endAt!)}" data-edit="${event.id}">•••</button></li>`;
-  }).join('')}</ol>`;
+  container.innerHTML = `${events.length ? `<ol class="history-list">${events.map((event) => historyRow(event)).join('')}</ol>` : ''}${deletedEvents.length ? `<section class="deleted-history" aria-labelledby="deleted-history-heading"><h3 id="deleted-history-heading">Deleted care actions</h3><ol class="history-list">${deletedEvents.map((event) => historyRow(event, true)).join('')}</ol></section>` : ''}`;
   container.querySelectorAll<HTMLButtonElement>('[data-edit]').forEach((button) => button.addEventListener('click', () => openCorrection(button.dataset.edit!)));
 }
 
@@ -262,7 +276,11 @@ function openCorrection(id: string): void {
   const event = state.events.find((item) => item.id === id);
   if (!event || event.endAt === null) return;
   const corrections = state.corrections.filter((item) => item.eventId === id);
-  openDialog('Visible correction', `Correct this ${ACTION_META[event.type].label.toLowerCase()} care action`, `<form class="dialog-form" id="correction-form"><label>Started<input type="datetime-local" id="correct-start" required value="${toLocalInput(event.startAt)}"></label><label>Ended<input type="datetime-local" id="correct-end" required value="${toLocalInput(event.endAt)}"></label><label>Note <span>(optional)</span><input id="correct-note" maxlength="120" value="${escapeHtml(event.note)}"></label><label>Reason for correction <span>(shown in correction history)</span><input id="correct-reason" required maxlength="120" value="Corrected time"></label><p class="field-error" id="correction-error" role="alert" hidden></p><details class="correction-history"><summary>Correction history (${corrections.length})</summary><ol>${corrections.map((item) => `<li><p><strong>${escapeHtml(item.reason)}</strong><span>${fullTimeLabel(item.at)}</span></p><section aria-label="Before correction"><h3>Before</h3>${correctionSnapshot(item.before)}</section><section aria-label="After correction"><h3>After</h3>${correctionSnapshot(item.after)}</section></li>`).join('') || '<li>No earlier corrections.</li>'}</ol></details><div class="dialog-actions"><button class="button button--danger" id="delete-event" type="button">Delete care action</button><button class="button button--primary" type="submit">Save correction</button></div></form>`);
+  if (event.deleted) {
+    openDialog('Visible correction', `Deleted ${ACTION_META[event.type].label.toLowerCase()} care action`, `<p>This care action was deleted. Its correction history is kept below.</p>${correctionHistoryMarkup(corrections, true)}`);
+    return;
+  }
+  openDialog('Visible correction', `Correct this ${ACTION_META[event.type].label.toLowerCase()} care action`, `<form class="dialog-form" id="correction-form"><label>Started<input type="datetime-local" id="correct-start" required value="${toLocalInput(event.startAt)}"></label><label>Ended<input type="datetime-local" id="correct-end" required value="${toLocalInput(event.endAt)}"></label><label>Note <span>(optional)</span><input id="correct-note" maxlength="120" value="${escapeHtml(event.note)}"></label><label>Reason for correction <span>(shown in correction history)</span><input id="correct-reason" required maxlength="120" value="Corrected time"></label><p class="field-error" id="correction-error" role="alert" hidden></p>${correctionHistoryMarkup(corrections)}<div class="dialog-actions"><button class="button button--danger" id="delete-event" type="button">Delete care action</button><button class="button button--primary" type="submit">Save correction</button></div></form>`);
   element<HTMLFormElement>('correction-form').addEventListener('submit', (submitEvent) => {
     submitEvent.preventDefault();
     const startAt = new Date(element<HTMLInputElement>('correct-start').value).getTime();
@@ -347,16 +365,16 @@ function wirePeer(link: PeerLink): void {
 }
 
 function pairingOutput(title: string, code: string, nextLabel: string): string {
-  return `<p>Let the other caregiver scan this code. Keep it private: anyone who sees it during pairing could join.</p><div class="qr-wrap"><canvas id="pair-qr" width="320" height="320" aria-label="Pairing QR code"></canvas></div><label>Pairing code <span>(copy this if camera scanning is unavailable)</span><textarea class="pair-code" id="pair-code" readonly>${code}</textarea></label><div class="dialog-actions"><button class="button button--ghost" id="copy-code" type="button">Copy code</button><button class="button button--primary" id="pair-next" type="button">${nextLabel}</button></div><p class="license-note">${title}</p>`;
+  return `<p>Show this code to the caregiver you are pairing.</p><div class="qr-wrap"><canvas id="pair-qr" width="320" height="320" aria-label="Pairing QR code"></canvas></div><label>Pairing code <span>(copy this if camera scanning is unavailable)</span><textarea class="pair-code" id="pair-code" readonly>${code}</textarea></label><div class="dialog-actions"><button class="button button--ghost" id="copy-code" type="button">Copy code</button><button class="button button--primary" id="pair-next" type="button">${nextLabel}</button></div><p class="license-note">${title}</p>`;
 }
 
 async function createInvitation(): Promise<void> {
-  openDialog('Device pairing', 'Creating invitation…', '<p role="status">Preparing a direct connection on this device.</p>');
+  openDialog('Device pairing', 'Creating invitation…', '<p role="status">Preparing pairing on this device.</p>');
   try {
     const result = await PeerLink.createHost(demoMode);
     wirePeer(result.link);
     element<HTMLElement>('dialog-title').textContent = 'Scan on the second device';
-    dialogBody.innerHTML = pairingOutput('Invitation expires when this dialog or app is closed.', result.invite, 'Enter their response');
+    dialogBody.innerHTML = pairingOutput('Keep this dialog open while the other caregiver responds.', result.invite, 'Enter their response');
     try { drawQr(element<HTMLCanvasElement>('pair-qr'), result.invite); } catch { element<HTMLElement>('pair-qr').hidden = true; }
     element<HTMLButtonElement>('copy-code').addEventListener('click', () => void copyPairingCode(result.invite).then(() => showToast('Pairing code copied')));
     element<HTMLButtonElement>('pair-next').addEventListener('click', () => {
@@ -386,7 +404,7 @@ function openJoinInvitation(): void {
   element<HTMLFormElement>('invite-form').addEventListener('submit', (event) => {
     event.preventDefault();
     const code = element<HTMLTextAreaElement>('invite-code').value;
-    dialogBody.innerHTML = '<p role="status">Creating the encrypted response…</p>';
+    dialogBody.innerHTML = '<p role="status">Creating response…</p>';
     void PeerLink.join(code, demoMode).then((result) => {
       wirePeer(result.link);
       element<HTMLElement>('dialog-title').textContent = 'Return this response';
@@ -395,7 +413,7 @@ function openJoinInvitation(): void {
       element<HTMLButtonElement>('copy-code').addEventListener('click', () => void copyPairingCode(result.answer).then(() => showToast('Response code copied')));
       element<HTMLButtonElement>('pair-next').addEventListener('click', closeDialog);
     }).catch((error: Error) => {
-      dialogBody.innerHTML = `<p role="alert">${escapeHtml(error.message)}</p><button class="button button--secondary" id="try-join-again" type="button">Try again</button>`;
+      dialogBody.innerHTML = `<p role="alert">${escapeHtml(error.message)}</p><button class="button button--secondary" id="try-join-again" type="button">Enter invitation again</button>`;
       element<HTMLButtonElement>('try-join-again').addEventListener('click', openJoinInvitation);
     });
   });
