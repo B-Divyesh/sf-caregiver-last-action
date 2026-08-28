@@ -4,10 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#0e1b22" />
-    <meta name="description" content="A private, end-time-first handoff board for baby caregivers." />
-    <title>Caregiver Last Action — private baby handoffs</title>
+    <meta name="description" content="See the last baby-care action for a clear caregiver handoff." />
+    <meta property="og:title" content="Caregiver Last Action — last baby-care action" />
+    <meta property="og:description" content="See the last baby-care action for a clear caregiver handoff." />
+    <meta property="og:image" content="/art/social-card.png" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Caregiver Last Action — last baby-care action" />
+    <meta name="twitter:description" content="See the last baby-care action for a clear caregiver handoff." />
+    <meta name="twitter:image" content="/art/social-card.png" />
+    <link rel="canonical" href="https://caregiver-last-action.sociobot.in/" />
+    <title>Caregiver Last Action — last baby-care action</title>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to the handoff board</a>
@@ -18,14 +28,17 @@
       </picture>
       <div class="masthead__shade"></div>
       <div class="masthead__inner shell">
-        <a class="brand" href="#board" aria-label="Caregiver Last Action home">
+        <a class="brand" href="/" aria-label="Caregiver Last Action home">
           <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M5 27c7-2 11-2 17 0s9 2 13 0M9 21a11 11 0 0 1 21-8 12 12 0 0 0-21 8Z"/></svg>
           <span>Caregiver<br /><strong>Last Action</strong></span>
         </a>
+        <nav class="site-nav" aria-label="Main navigation"><a href="/demo">Demo</a><a href="#history">History</a><a href="#settings">Backups</a><a href="/privacy/">Privacy</a></nav>
         <div class="masthead__copy">
-          <p class="eyebrow">The quiet handoff</p>
-          <h1>Know what happened last.</h1>
-          <p id="hero-line">One clear answer, saved privately on this device.</p>
+          <p class="eyebrow">A clear handoff</p>
+          <h1>See the last baby-care action.</h1>
+          <p id="hero-line">For baby caregivers handing off feeds, sleep, medicine, and diapers.</p>
+          <div class="hero-actions"><a class="button button--primary" href="/demo">Try it with sample data</a><span>See three realistic handoff entries.</span></div>
+          <ul class="hero-facts"><li>Demo stays on this device</li><li>Works after the first visit offline</li><li>No purchase needed</li></ul>
         </div>
         <div class="connection-pill" id="connection-pill" role="status"><span></span><b>Saved on this device</b></div>
       </div>
@@ -40,8 +53,8 @@
       <section id="board" class="board" aria-labelledby="board-heading">
         <div class="section-heading">
           <div>
-            <p class="eyebrow" id="baby-label">Current handoff</p>
-            <h2 id="board-heading">Last completed action</h2>
+            <p class="eyebrow" id="baby-label">Current care action</p>
+            <h2 id="board-heading">Latest care action</h2>
           </div>
           <time id="current-time" class="current-time"></time>
         </div>
@@ -53,8 +66,8 @@
       <section id="history" class="content-section" aria-labelledby="history-heading">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">What led here</p>
-            <h2 id="history-heading">Recent record</h2>
+            <p class="eyebrow">Earlier today</p>
+            <h2 id="history-heading">Recent care actions</h2>
           </div>
           <button class="text-button" id="export-csv" type="button">Export CSV</button>
         </div>
@@ -64,8 +77,8 @@
       <section id="connect" class="content-section connect-section" aria-labelledby="connect-heading">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">Across the room</p>
-            <h2 id="connect-heading">Connect another caregiver</h2>
+            <p class="eyebrow">Another device</p>
+            <h2 id="connect-heading">Share with another caregiver</h2>
           </div>
           <span class="secure-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2m-11 0h12v10H6Z"/></svg> End-to-end encrypted</span>
         </div>
@@ -75,8 +88,8 @@
       <section id="settings" class="content-section" aria-labelledby="settings-heading">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">Make it yours</p>
-            <h2 id="settings-heading">Device &amp; data</h2>
+            <p class="eyebrow">Your household</p>
+            <h2 id="settings-heading">Names and backups</h2>
           </div>
         </div>
         <form id="settings-form" class="settings-form">
@@ -100,8 +113,9 @@
     </nav>
 
     <footer class="site-footer shell" hidden>
-      <p>Private by design. Not medical guidance.</p>
+      <p>Clear handoffs for baby caregivers.</p>
       <nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a></nav>
+      <p>Built by Param Factory · build 33576e1</p>
       <p class="generated-note">Night-watch artwork was generated for this product.</p>
     </footer>
 
@@ -111,6 +125,7 @@
     </dialog>
     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
     <div class="offline-banner" id="offline-banner" role="status" hidden>You’re offline. Changes will stay on this device.</div>
+    <aside class="demo-banner" id="demo-banner" role="status" hidden><span>Demo — sample data, nothing is saved.</span><button id="reset-demo" type="button">Reset demo</button><a href="/">Start for real</a></aside>
 
     <script type="module" src="/src/app.ts"></script>
   </body>

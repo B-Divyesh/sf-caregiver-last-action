@@ -6,4 +6,5 @@ graphify-out/
 test-results/
 playwright-report/
 coverage/
+.factory/evidence-local/
 .DS_Store

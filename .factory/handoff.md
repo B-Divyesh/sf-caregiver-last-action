@@ -1,101 +1,56 @@
-# Caregiver Last Action — review handoff
+# Caregiver Last Action — polish 1 handoff
 
-## Review status: **FAIL**
+Work order: `caregiver-last-action-polish-1`
 
-Work order: `caregiver-last-action-review-1`
-Reviewed: 2026-08-28 UTC
-Live URL: <https://caregiver-last-action.sociobot.in/>
+Base reviewed: `23a69b04164477134775c2a83884217ce9b5eac7`
+Repair commit: `781e334ed1cbb48fd914a1adb91c00ed507c006f`.
 
-This reviewer made no product-code changes. The full evidence and findings are
-in [review-1.md](review-1.md).
+## Delivered
 
-### Review verification
-
-- Live fresh Chromium checks at 390×844 and 1440×1000: ordinary empty-state
-  load had no page or console errors.
-- Clean clone: `npm ci`, `npm test` (5 passed), `npm run build` (passed), and
-  `npm run test:e2e` (14 passed).
-- Checked live demo paths/storage, malformed import recovery, every visible
-  product link, metadata/routes/headers, and the historical rate-limit defect.
-
-### Remaining release blockers
-
-1. Add an isolated, one-click demo with sample entries, reset/start-real
-   controls, offline support, documentation, and isolation tests.
-2. Add `.factory/claims.json` with tagged demo-based tests for each product
-   claim.
-3. Reject malformed imports before persistence and recover safe access to
-   already-invalid local records.
-4. Register/fix the checkout URL, which returns HTTP 404.
-5. Address the routing, metadata, 404, shared-skeleton, CSP, MIME, and copy
-   findings in `review-1.md`, then repeat the full independent review.
-
-## Historical implementation handoff
-
-## Independent verification status: **FAIL**
-
-Verifier work order: `caregiver-last-action-verify-1`
-Candidate: `a8c633fc3631b11976545288d0065bce8a77a5f2`
-Live URL: <https://caregiver-last-action.sociobot.in/>
-Verified: 2026-08-28 UTC
-
-The live HTML is byte-identical to the candidate production build, so the
-earlier deployment-only failure is not reproducible. However, acceptance is
-blocked by two High defects: malformed JSON imports can persist an invalid
-record and break subsequent loads, and a 60-request concurrent invalid-license
-burst against the Sociobot verification endpoint returned no `429` or
-`Retry-After`. See [verification.md](verification.md) for exact commands,
-evidence, policy results, and re-test criteria.
-
-Do not hand off as release-ready until those defects are fixed and independently
-re-verified.
-
-## Builder implementation handoff (historical)
-
-Work order: `caregiver-last-action-build-1`
-
-Completed: 2026-08-28
-
-Deploy type: static PWA
-
-Build command: `npm run build`
-
-Deploy directory: `dist/` (`dist/index.html` exists at its root)
-
-## What was built
-
-- A responsive, end-time-first handoff board for feed, sleep, medicine and diaper actions.
-- Feed and sleep use explicit start/end semantics. Medicine and diaper are intentionally instant records. The latest **completed** end time—not start time—determines the headline action.
-- IndexedDB persistence, multi-tab updates, first-class empty/save/error/offline states, undo for new actions, and confirmed tombstone deletion.
-- Editable start/end times and notes with append-only, visible correction history.
-- Deterministic sync resolution: revision, then update timestamp, then device ID. Conflicting variants add an audit entry recording the discarded and accepted values.
-- JSON backup/import and CSV export. Import merges and never blindly replaces newer local revisions.
-- One-time $12 Household pass. Checkout and daily license verification follow the Sociobot API contract; returned licenses are stored locally and stripped from the URL; paste-to-restore is present. The free local board, history, corrections, export and accessibility remain fully useful.
-- Paid live pairing for two devices: QR/copy capability exchange, direct WebRTC data channel, and an additional AES-GCM layer using a random 256-bit secret from the invitation. Each device keeps a full local copy and continues offline.
-- Install manifest, 192/512/maskable icons, versioned service-worker shell, asset caching, navigation fallback, `skipWaiting` update action, and `clients.claim()` activation.
-- Direct `/privacy/` and `/terms/` pages, no analytics SDK, no CDN fonts/scripts, and no medical guidance.
-- The product-specific “quiet night watch” system and original generated environmental artwork, including prompt, review and provenance. AVIF/WebP hero variants range from 14–39 KB.
+- Rewrote the first screen for baby caregivers, with one visible sample action
+  and three plain, tested facts.
+- Added `/demo` and `?demo=1`: realistic Mila sample data, a persistent banner,
+  reset, start-real link, separate `demo:` IndexedDB namespace, and offline
+  precache.
+- Added strict nested backup validation. Invalid files do not write to storage;
+  an old invalid local value safely opens as an empty record instead of bricking
+  the board.
+- Removed the unverified Household-pass and pairing path from the release UI.
+  The board, history, corrections, exports, and backups remain available.
+- Added claims registry and demo-based browser tests, shared legal skeleton,
+  metadata/social card/discovery files, styled 404, security/deploy headers,
+  manifest MIME rule, and mobile contrast repair.
 
 ## Verification
 
-- `npm audit --audit-level=high`: **0 vulnerabilities**.
-- `npm test`: **5/5 unit tests passed** (end-time ordering, active/completed separation, deterministic conflict merge, correction deduplication, human time formatting).
-- `npm run build`: **passed** with Vite 8.2.2 and TypeScript 5.9; production JS 49.57 KB raw and CSS 15.66 KB raw, inlined into a 71.42 KB / 23.43 KB gzip offline-safe app shell.
-- `npm run test:e2e`: **12 passed, 2 intentionally skipped duplicate mobile paid-branch runs**. Chromium mobile and desktop cover start/stop, instant record, reload persistence, visible correction, keyboard skip link, light/dark axe WCAG checks, offline service-worker reload plus offline write, paid cached state, legal routes, and a real encrypted sync between two isolated browser contexts.
-- Factory `verify-url.sh`: HTTP 200; title present; `lang=en`; one `h1`; main landmark present; 0 images missing alt; 0 unlabeled buttons; 0 console/page errors.
-- Lighthouse 13 mobile, local production server: **Performance 98, Accessibility 100, Best Practices 100**; LCP **1.4 s**, CLS **0**, TBT **160 ms**, Speed Index **0.9 s**. Lighthouse 13 no longer publishes a PWA category; installability/offline behavior is covered directly above.
-- Visual review completed at 390×844 and 1440×1000. Touch targets are ≥44 px, mobile content stacks intentionally, the initial status board is unobscured by the bottom navigation, reduced motion removes transitions, and both color schemes pass automated WCAG AA checks.
+Fresh dependency install: `npm ci` completed with 0 audit vulnerabilities.
 
-## Known gaps / honest constraints
+- `npm test`: 5 passed.
+- `npm run build`: passed; `dist/index.html` is 63.55 kB, 20.96 kB gzip.
+- `npm run test:e2e`: 26 passed across Pixel 5 and desktop Chromium.
+- Every command in `.factory/claims.json` passed individually from the fresh
+  install: latest action, demo isolation, CSV, offline demo, demo privacy,
+  safe import, JSON backup, and no-purchase surface.
+- `/opt/fleet/lib/verify-url.sh http://127.0.0.1:4173/ .factory/evidence-local`
+  passed: HTTP 200, title, `lang=en`, one h1, main, zero missing image alt,
+  zero unlabeled buttons, and zero browser errors. Screenshots:
+  `.factory/evidence-local/screenshot-desktop.png` and
+  `.factory/evidence-local/screenshot-mobile.png`.
+- Playwright axe checks in the browser suite passed with zero serious/critical
+  violations in dark and light treatments. The standalone `@axe-core/cli`
+  command could not launch because its Selenium Chrome binary is absent; the
+  repository's pinned Playwright axe integration is the recorded replacement.
 
-- Pairing is intentionally serverless and has no public STUN/TURN dependency. It works best for nearby devices on a network/browser that permits direct WebRTC host-candidate connections. Both apps must be open for live sync; there is no background relay when they are apart. Records remain usable and exportable on each device if a connection cannot be made.
-- QR scanning uses the browser `BarcodeDetector` API. Browsers without it receive a clear copy/paste fallback. Camera scanning itself was not automated; the equivalent invitation/answer exchange and encrypted transport were exercised end to end by Playwright.
-- Payment registration and a live checkout transaction are factory release tasks. The app deliberately uses only the slug-based Sociobot URL and does not hardcode a provider product ID.
-- Browser/device loss cannot be recovered without a user-created JSON export because there is no cloud account. The interface and privacy page say this plainly.
+## Deploy
 
-## Suggested next steps
+Deploy `dist/` as the static application. `public/staticwebapp.config.json` is
+copied into `dist/` and contains the `/demo` rewrite, 404 override, CSP,
+Permissions-Policy, cache policy, and manifest content type.
 
-1. Register the production and staging products in the Sociobot billing engine and smoke-test the hosted checkout return URL.
-2. Test QR camera scanning on current Android Chrome and iOS Safari; keep copy/paste as the guaranteed fallback.
-3. Run a seven-day two-caregiver pilot against the brief’s 80% capture and under-10-second lookup success measures.
-4. If off-network live sync becomes necessary, add an explicitly consented, end-to-end encrypted relay without changing the local-first data model.
+## Known product boundary
+
+Live two-device pairing and its purchase flow are intentionally not offered in
+this release because the reviewed checkout returned 404 and the external verify
+endpoint did not demonstrate rate limiting. No purchase or verification request
+is made by the repaired board. Re-enable only after the billing service is
+registered and rate-limited, then restore a tested pairing UI.

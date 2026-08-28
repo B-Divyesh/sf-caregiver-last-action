@@ -2,15 +2,15 @@ import './styles.css';
 import type { ActionType, AppState, CareEvent, Correction } from './types';
 import { ACTION_META } from './types';
 import { activeEvent, formatDuration, mergeStates, relativeTime, sortedCompletedEvents } from './state';
-import { getDeviceId, loadState, saveState, validateImportedState } from './storage';
+import { clearDemoState, getDeviceId, loadState, saveState, validateImportedState } from './storage';
 import { copyPairingCode, drawQr, PeerLink } from './peer';
-import { cachedLicenseState, captureLicenseFromUrl, checkoutUrl, LICENSE_KEY, restoreLicense, verifyLicense, type LicenseState } from './license';
 
-const deviceId = getDeviceId();
+const demoMode = window.location.pathname === '/demo' || new URLSearchParams(window.location.search).get('demo') === '1';
+const deviceId = getDeviceId(demoMode);
 let state: AppState;
 let peerLink: PeerLink | undefined;
 let pairStatus = 'Not connected';
-let licenseState: LicenseState = cachedLicenseState();
+const pairingAvailable = false;
 let toastTimer = 0;
 let cameraStream: MediaStream | undefined;
 let networkReachable = navigator.onLine;
@@ -84,9 +84,9 @@ function setConnection(text: string, kind: 'ok' | 'offline' | 'error' = 'ok'): v
   if (label) label.textContent = text;
 }
 
-async function persist(message = 'Saved on this device', announce = false): Promise<void> {
+async function persist(message = demoMode ? 'Saved in sample data' : 'Saved on this device', announce = false): Promise<void> {
   try {
-    await saveState(state);
+    await saveState(state, demoMode);
     broadcast.postMessage(state);
     await peerLink?.send(state);
     setConnection(peerLink ? pairStatus : message);
@@ -96,6 +96,20 @@ async function persist(message = 'Saved on this device', announce = false): Prom
     setConnection('Could not save', 'error');
     showToast('This change could not be saved. Try again.');
   }
+}
+
+function sampleState(): AppState {
+  const now = Date.now();
+  const entry = (type: ActionType, minutesAgo: number, durationMinutes: number, note: string): CareEvent => {
+    const endAt = now - minutesAgo * 60_000;
+    return { id: `sample-${type}`, type, startAt: endAt - durationMinutes * 60_000, endAt, note, updatedAt: endAt, revision: 1, deviceId };
+  };
+  return {
+    version: 1,
+    events: [entry('diaper', 18, 0, 'Wet diaper'), entry('feed', 95, 22, 'Finished 120 ml'), entry('sleep', 220, 74, 'Woke calmly')],
+    corrections: [],
+    settings: { babyName: 'Mila', caregiverName: 'Sample caregiver', updatedAt: now, deviceId },
+  };
 }
 
 function snapshot(event: CareEvent): Correction['before'] {
@@ -197,9 +211,8 @@ function renderHistory(): void {
 
 function renderConnect(): void {
   const container = element<HTMLElement>('connect-content');
-  if (!licenseState.unlocked) {
-    container.innerHTML = `<div class="connect-panel"><div><h3>Keep two caregivers on the same page.</h3><p>The free board, history, corrections and exports stay available forever. A Household pass adds private live pairing between two nearby devices.</p><p class="price">$12 once · no account · no subscription</p><p class="license-note">Sociobot/Dodo is the merchant of record. Refunds are handled there and revoke the license.</p></div><div><div class="button-row"><a class="button button--primary" href="${checkoutUrl}">Buy Household pass</a><button class="button button--ghost" id="restore-pass" type="button">Restore purchase</button></div>${licenseState.message ? `<p class="pair-status">${escapeHtml(licenseState.message)}</p>` : ''}</div></div>`;
-    element<HTMLButtonElement>('restore-pass').addEventListener('click', openRestoreLicense);
+  if (!pairingAvailable) {
+    container.innerHTML = `<div class="connect-panel"><div><h3>Share is not available in this release.</h3><p>This release keeps the handoff board on one device. Export a backup to move a record to another device.</p></div><div><a class="button button--secondary" href="#settings">Go to backups</a></div></div>`;
     return;
   }
   container.innerHTML = `<div class="connect-panel"><div><h3>Share this board without an account.</h3><p>Create an invitation on one device and scan it on the other. The QR carries a one-time secret; records travel directly over an AES-GCM encrypted peer connection. Both devices keep a local copy.</p><p class="pair-status">${escapeHtml(pairStatus)}</p></div><div class="button-row"><button class="button button--primary" id="create-invite" type="button">Create invitation</button><button class="button button--secondary" id="join-invite" type="button">Join invitation</button></div></div>`;
@@ -209,8 +222,8 @@ function renderConnect(): void {
 
 function render(): void {
   const baby = state.settings.babyName.trim();
-  element<HTMLElement>('baby-label').textContent = baby ? `${baby} · current handoff` : 'Current handoff';
-  element<HTMLElement>('hero-line').textContent = baby ? `One clear answer for ${baby}’s next caregiver.` : 'One clear answer, saved privately on this device.';
+  element<HTMLElement>('baby-label').textContent = baby ? `${baby} · current care action` : 'Current care action';
+  element<HTMLElement>('hero-line').textContent = baby ? `One clear answer for ${baby}’s next caregiver.` : 'For baby caregivers handing off feeds, sleep, medicine, and diapers.';
   renderLastAction();
   renderActiveAction();
   renderActions();
@@ -294,7 +307,7 @@ function wirePeer(link: PeerLink): void {
     }
     if (merged.changed) {
       state = merged.state;
-      void saveState(state);
+      void saveState(state, demoMode);
       void link.send(state);
       render();
       showToast(`Merged ${merged.changed} newer change${merged.changed === 1 ? '' : 's'}`);
@@ -388,24 +401,6 @@ function openScanner(onResult: (code: string) => void): void {
   }).catch(() => { status.textContent = 'Camera access was unavailable. Close this and paste the pairing code instead.'; });
 }
 
-function openRestoreLicense(): void {
-  openDialog('Household pass', 'Restore a purchase', `<form class="dialog-form" id="restore-form"><p>Paste the license token from your Sociobot receipt. It is stored only on this device.</p><label>License token<input id="license-token" autocomplete="off" required></label><p class="field-error" id="license-error" role="alert" hidden></p><div class="dialog-actions"><a class="button button--ghost" href="${checkoutUrl}">Buy a pass</a><button class="button button--primary" type="submit">Verify license</button></div><p class="license-note"><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a></p></form>`);
-  element<HTMLFormElement>('restore-form').addEventListener('submit', (event) => {
-    event.preventDefault();
-    const output = element<HTMLElement>('license-error');
-    try {
-      restoreLicense(element<HTMLInputElement>('license-token').value);
-      output.textContent = 'Checking license…'; output.hidden = false;
-      void verifyLicense(true).then((result) => {
-        licenseState = result;
-        if (result.unlocked) { closeDialog(); showToast('Household pass restored'); }
-        else { output.textContent = result.message; output.hidden = false; }
-        renderConnect();
-      });
-    } catch (error) { output.textContent = error instanceof Error ? error.message : 'Could not save that license.'; output.hidden = false; }
-  });
-}
-
 function download(filename: string, content: string, type: string): void {
   const url = URL.createObjectURL(new Blob([content], { type }));
   const anchor = document.createElement('a');
@@ -471,10 +466,16 @@ async function checkConnectivity(): Promise<void> {
 }
 
 async function initialize(): Promise<void> {
-  captureLicenseFromUrl();
-  licenseState = cachedLicenseState();
+  document.title = demoMode ? 'Demo — Caregiver Last Action' : 'Caregiver Last Action — last baby-care action';
+  const canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+  if (canonical) canonical.href = demoMode ? `${location.origin}/demo` : `${location.origin}/`;
+  element<HTMLElement>('demo-banner').hidden = !demoMode;
   try {
-    state = await loadState(deviceId);
+    state = await loadState(deviceId, demoMode);
+    if (demoMode && state.events.length === 0) {
+      state = sampleState();
+      await saveState(state, true);
+    }
     loading.hidden = true;
     main.hidden = false;
     document.querySelectorAll<HTMLElement>('.bottom-nav, .site-footer').forEach((item) => { item.hidden = false; });
@@ -487,10 +488,6 @@ async function initialize(): Promise<void> {
     return;
   }
 
-  if (localStorage.getItem(LICENSE_KEY)) {
-    licenseState = await verifyLicense();
-    renderConnect();
-  }
 }
 
 element<HTMLButtonElement>('close-dialog').addEventListener('click', closeDialog);
@@ -517,12 +514,16 @@ element<HTMLInputElement>('import-file').addEventListener('change', (event) => {
     void persist(`Imported ${merged.changed} newer change${merged.changed === 1 ? '' : 's'}`, true);
   }).catch((error: Error) => showToast(error.message || 'That backup could not be imported.'));
 });
+element<HTMLButtonElement>('reset-demo').addEventListener('click', () => {
+  if (!demoMode) return;
+  void clearDemoState().then(() => location.reload()).catch(() => showToast('The sample could not be reset. Reload and try again.'));
+});
 broadcast.addEventListener('message', (event: MessageEvent<AppState>) => {
   if (!state) return;
   const merged = mergeStates(state, event.data);
   if (merged.changed) {
     state = merged.state;
-    void saveState(state);
+    void saveState(state, demoMode);
     render();
   }
 });
