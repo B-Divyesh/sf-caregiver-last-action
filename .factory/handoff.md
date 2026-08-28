@@ -1,4 +1,36 @@
-# Caregiver Last Action — handoff
+# Caregiver Last Action — review handoff
+
+## Review status: **FAIL**
+
+Work order: `caregiver-last-action-review-1`
+Reviewed: 2026-08-28 UTC
+Live URL: <https://caregiver-last-action.sociobot.in/>
+
+This reviewer made no product-code changes. The full evidence and findings are
+in [review-1.md](review-1.md).
+
+### Review verification
+
+- Live fresh Chromium checks at 390×844 and 1440×1000: ordinary empty-state
+  load had no page or console errors.
+- Clean clone: `npm ci`, `npm test` (5 passed), `npm run build` (passed), and
+  `npm run test:e2e` (14 passed).
+- Checked live demo paths/storage, malformed import recovery, every visible
+  product link, metadata/routes/headers, and the historical rate-limit defect.
+
+### Remaining release blockers
+
+1. Add an isolated, one-click demo with sample entries, reset/start-real
+   controls, offline support, documentation, and isolation tests.
+2. Add `.factory/claims.json` with tagged demo-based tests for each product
+   claim.
+3. Reject malformed imports before persistence and recover safe access to
+   already-invalid local records.
+4. Register/fix the checkout URL, which returns HTTP 404.
+5. Address the routing, metadata, 404, shared-skeleton, CSP, MIME, and copy
+   findings in `review-1.md`, then repeat the full independent review.
+
+## Historical implementation handoff
 
 ## Independent verification status: **FAIL**
 
