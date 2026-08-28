@@ -43,7 +43,8 @@ Fresh dependency install: `npm ci` completed with 0 audit vulnerabilities.
   repository's pinned Playwright axe integration is the recorded replacement.
 - First live deployment exposed an inline-module CSP violation. The final CSP
   uses the exact module hash (`sha256-Vr7MLLWVdCNSMP7b8Ghyx4lBdOD1ZJrm9Npf9AhWga4=`)
-  and is rechecked after the final deploy.
+  and is rechecked after the final deploy. Final live cold check: 902 ms,
+  no console/page errors, title/lang/h1/main/alt/button checks all passed.
 
 ## Deploy
 

@@ -7,4 +7,5 @@ test-results/
 playwright-report/
 coverage/
 .factory/evidence-local/
+.factory/evidence-live/
 .DS_Store

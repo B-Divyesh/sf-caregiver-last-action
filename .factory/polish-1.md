@@ -27,5 +27,7 @@ Local evidence: `npm test` (5 pass), `npm run build` (pass), `npm run test:e2e`
 | verification: rate limit | Disabled the client verification/purchase surface so the release makes no call to the unrate-limited endpoint. | `@claim:private-demo`, `@claim:no-purchase`. |
 | verification: cache policy | Added immutable cache rules plus SW v3. | `dist/staticwebapp.config.json`, offline claim. |
 
-Live deployment initially exposed a CSP/module mismatch. It was fixed in the
-follow-up deployment and is rechecked in the handoff evidence.
+Final live checks: root and demo returned 200, unknown route returned 404,
+`/manifest.json` returned `application/json`, CSP and Permissions-Policy were
+present, and a cold mobile `?demo=1` session showed the demo banner and Diaper
+sample without console errors. Live evidence is in the handoff.
