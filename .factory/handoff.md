@@ -1,4 +1,24 @@
-# Caregiver Last Action — build handoff
+# Caregiver Last Action — handoff
+
+## Independent verification status: **FAIL**
+
+Verifier work order: `caregiver-last-action-verify-1`
+Candidate: `a8c633fc3631b11976545288d0065bce8a77a5f2`
+Live URL: <https://caregiver-last-action.sociobot.in/>
+Verified: 2026-08-28 UTC
+
+The live HTML is byte-identical to the candidate production build, so the
+earlier deployment-only failure is not reproducible. However, acceptance is
+blocked by two High defects: malformed JSON imports can persist an invalid
+record and break subsequent loads, and a 60-request concurrent invalid-license
+burst against the Sociobot verification endpoint returned no `429` or
+`Retry-After`. See [verification.md](verification.md) for exact commands,
+evidence, policy results, and re-test criteria.
+
+Do not hand off as release-ready until those defects are fixed and independently
+re-verified.
+
+## Builder implementation handoff (historical)
 
 Work order: `caregiver-last-action-build-1`
 
