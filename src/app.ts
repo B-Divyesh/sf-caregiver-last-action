@@ -14,6 +14,8 @@ let toastTimer = 0;
 let cameraStream: MediaStream | undefined;
 let networkReachable = navigator.onLine;
 let forcedOffline = false;
+let writeQueue: Promise<void> = Promise.resolve();
+let resettingDemo = false;
 // Demo and real records must never meet, including through another open tab.
 const broadcast = new BroadcastChannel(`caregiver-last-action:${demoMode ? 'demo' : 'real'}`);
 
@@ -86,9 +88,12 @@ function setConnection(text: string, kind: 'ok' | 'offline' | 'error' = 'ok'): v
 
 async function persist(message = demoMode ? 'Saved in sample data' : 'Saved on this device', announce = false): Promise<boolean> {
   try {
-    await saveState(state, demoMode);
-    broadcast.postMessage(state);
-    await peerLink?.send(state);
+    const savedState = structuredClone(state);
+    const write = writeQueue.then(() => saveState(savedState, demoMode));
+    writeQueue = write.catch(() => undefined);
+    await write;
+    broadcast.postMessage(savedState);
+    await peerLink?.send(savedState);
     setConnection(peerLink ? pairStatus : message);
     render();
     if (announce) showToast(message);
@@ -132,6 +137,7 @@ function correctionSnapshot(snapshotValue: Correction['before']): string {
 }
 
 function startAction(type: ActionType): void {
+  if (resettingDemo) return;
   const now = Date.now();
   const event: CareEvent = {
     id: crypto.randomUUID(), type, startAt: now, endAt: ACTION_META[type].timed ? null : now,
@@ -566,7 +572,16 @@ element<HTMLInputElement>('import-file').addEventListener('change', (event) => {
 });
 element<HTMLButtonElement>('reset-demo').addEventListener('click', () => {
   if (!demoMode) return;
-  void clearDemoState().then(() => location.reload()).catch(() => showToast('The sample could not be reset. Reload and try again.'));
+  resettingDemo = true;
+  const resetButton = element<HTMLButtonElement>('reset-demo');
+  resetButton.disabled = true;
+  main.inert = true;
+  void writeQueue.then(() => clearDemoState()).then(() => location.reload()).catch(() => {
+    resettingDemo = false;
+    resetButton.disabled = false;
+    main.inert = false;
+    showToast('The sample could not be reset. Reload and try again.');
+  });
 });
 broadcast.addEventListener('message', (event: MessageEvent<AppState>) => {
   if (!state) return;

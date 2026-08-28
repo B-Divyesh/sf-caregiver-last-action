@@ -87,6 +87,11 @@ test('@claim:demo-isolation demo has sample data and never changes the real reco
   await expect(page.getByText('Wet diaper', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: /Medicine/ }).click();
   await expect(page.locator('.last-card__type')).toContainText('Medicine');
+  const resetNavigation = page.waitForNavigation({ waitUntil: 'networkidle' });
+  await page.getByRole('button', { name: 'Reset demo' }).click();
+  await resetNavigation;
+  await expect(page.locator('#history-list .history-row')).toHaveCount(3);
+  await expect(page.locator('.last-card__type')).toContainText('Diaper');
   await page.goto('/');
   await expect(page.locator('.last-card__type')).toContainText('Diaper');
 });
